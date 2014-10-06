@@ -1,0 +1,84 @@
+objective:
+
+ordered by probable order of implementation
+
+SP: advance from one area to another, like a jump map basically. later, possibly combat w/ bots
+
+MP: 1v1, arena, CTF, possibly something like tf2's Arena: Respawn
+
+movement:
+
+needs to be *perfect*.
+
+we're super fast
+rollin around at the speed of sound
+got places to go
+gotta follow our rainbow
+cant stick around gotta keep movin on
+guess what lies ahead only ONE WAY TO FIND OUT
+
+i forgot the rest of the lyrics, shit
+
+the surf mechanic is our "gimmick" but it needs to be backed up w/ fundamentally satisfying and crisp movement
+
+see also: tribes, super meat boy
+
+Bhop on ground to keep velocity. possibly add support for auto-bhop,
+or skipping friction for several ticks after you land
+(longer window to make "perfect" bhops easier to do reliably).
+Difficulty setting affecting no-friction time in single-player?
+
+Floaty is fairly OK, we won't really be peeking here.
+
+high turning acceleration in air.
+
+
+
+ice-block-placing-thing:
+
+The gimmick.
+
+Okay, go play Minecraft. Note how you can place blocks *under* you, and walk out on a bridge you build.
+But, you need to look down, which is going to be really annoying and possibly get you motion sick.
+Also, you place blocks (because Minecraft).
+
+Well, in this game... call it NMIGP. In NMIGP, you got like... psychic energy. Or electrical something.
+Or like... alien physics bullshit.
+Or possibly ice.
+
+Effectively, it's placed in "chains". It fades after some time. It's made of rectangular sections.
+Zero width?
+You collide with it, but other players *probably* shouldn't (so as to not completely fuck prediction.)
+maybe it damages other players slightly?
+It has *negative friction*, up to a velocity cap. but not a lot, you accelerate very slowly.
+So you place a section on the ground, then that has a "hypothetical" section. The rotation (roll and pitch)
+of the hypothetical section is determined by your crosshair position relative to the previous section.
+So you can turn the ramp by intuitively slowly moving your crosshair. Feels like CS:S surfing.
+this hypothetical section is drawn in a different color or transparently, so you get visual feedback.
+when you click, hypothetical becomes real.
+
+ONLY the hypothetical section extrapolated from the section you're standing on is shown, so you can't spam it.
+
+it's placed with an ice gun or alien physics bullshit gun or psychic energy gun or electrical gun
+so it's its own gun. can't attack while placing. this means that a very important tactic will be
+surf, angle your ramp into the air, so you go flying up. then switch to a weel gun and attack,
+when you land you need to bunnyhop, to not lose your speed, while you switch back to your ice gun or whatever
+(since it takes a really long time to get up to speed again.)
+
+may take a while for the ice gun to warm up (<500ms) after switching to it, longer than the other guns
+well not warm up because it's an ice gun
+shut up
+
+actual shooting people
+
+
+who knows lol
+
+will probably prototype with a simple fast-firing hitscan weapon, emphasizing tracking.
+
+I want to eventually get relatively slow projectile weapons with arcs and stuff
+
+headshots could be a thing? maybe not, maybe only w/ certain weapons?
+
+NO INACCURACY. EVER. if that turns out to be an interesting thing, instead project a circle into the world
+that expands as distance increases, instead. same effect, but no RNG.
