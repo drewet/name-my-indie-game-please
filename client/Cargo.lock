@@ -1,0 +1,144 @@
+[root]
+name = "client"
+version = "0.0.1"
+dependencies = [
+ "glium 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+ "shared 0.0.1",
+]
+
+[[package]]
+name = "android_glue"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/android-rs-glue#72be8dfca01e4a03191110715e76b001481fab1b"
+dependencies = [
+ "compile_msg 0.1.0 (git+https://github.com/huonw/compile_msg#10e0f57069ee703bd07b07330dd0ada4e75c8622)",
+]
+
+[[package]]
+name = "cgmath"
+version = "0.0.1"
+source = "git+https://github.com/bjz/cgmath-rs#d981c349a0ffb13fb298f1ac1d5e5483ce860a81"
+
+[[package]]
+name = "compile_msg"
+version = "0.1.0"
+source = "git+https://github.com/huonw/compile_msg#10e0f57069ee703bd07b07330dd0ada4e75c8622"
+
+[[package]]
+name = "core_foundation"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-core-foundation#8fba98ea2b2a08cea02eae9c0212c3410a3d7bff"
+
+[[package]]
+name = "freetype-rs"
+version = "0.0.0"
+source = "git+https://github.com/PistonDevelopers/freetype-rs#5313a1d112ce517039c6120f714210f1a3e21542"
+
+[[package]]
+name = "gl_generator"
+version = "0.0.1"
+source = "git+http://github.com/bjz/gl-rs#2857ad712bd443196983ea7c0bd4b6bdcf653e7c"
+dependencies = [
+ "khronos_api 0.0.1 (git+http://github.com/bjz/gl-rs#2857ad712bd443196983ea7c0bd4b6bdcf653e7c)",
+ "rust-xml 0.1.0 (git+https://github.com/netvl/rust-xml#ffd68eb2b4ba4ec34be1d9772e193e90727d44f9)",
+]
+
+[[package]]
+name = "glium"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9"
+dependencies = [
+ "glium_core 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+ "glium_filter 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+ "glium_image 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+ "glium_sprite2d 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+ "glium_text 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+]
+
+[[package]]
+name = "glium_core"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9"
+dependencies = [
+ "cgmath 0.0.1 (git+https://github.com/bjz/cgmath-rs#d981c349a0ffb13fb298f1ac1d5e5483ce860a81)",
+ "compile_msg 0.1.0 (git+https://github.com/huonw/compile_msg#10e0f57069ee703bd07b07330dd0ada4e75c8622)",
+ "gl_generator 0.0.1 (git+http://github.com/bjz/gl-rs#2857ad712bd443196983ea7c0bd4b6bdcf653e7c)",
+ "glium_core_macros 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+ "glutin 0.0.1 (git+http://github.com/tomaka/glutin#cfb0cb70013772492c1930ced62f48aa6cb372ff)",
+ "nalgebra 0.1.0 (git+https://github.com/sebcrozet/nalgebra#ba18f5aa702846c7fd79d80b9eefc0372d7a00dc)",
+]
+
+[[package]]
+name = "glium_core_macros"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9"
+
+[[package]]
+name = "glium_filter"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9"
+dependencies = [
+ "glium_core 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+]
+
+[[package]]
+name = "glium_image"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9"
+dependencies = [
+ "glium_core 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+ "image 0.0.0 (git+https://github.com/PistonDevelopers/rust-image#2dacfa9a0f0090778f214e595820bbaa4b2b4a0f)",
+]
+
+[[package]]
+name = "glium_sprite2d"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9"
+dependencies = [
+ "glium_core 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+]
+
+[[package]]
+name = "glium_text"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9"
+dependencies = [
+ "freetype-rs 0.0.0 (git+https://github.com/PistonDevelopers/freetype-rs#5313a1d112ce517039c6120f714210f1a3e21542)",
+ "glium_core 0.0.1 (git+https://github.com/tomaka/glium#c862351e1a62bc6e7bb9521994ffe4041c8704e9)",
+]
+
+[[package]]
+name = "glutin"
+version = "0.0.1"
+source = "git+http://github.com/tomaka/glutin#cfb0cb70013772492c1930ced62f48aa6cb372ff"
+dependencies = [
+ "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue#72be8dfca01e4a03191110715e76b001481fab1b)",
+ "compile_msg 0.1.0 (git+https://github.com/huonw/compile_msg#10e0f57069ee703bd07b07330dd0ada4e75c8622)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#8fba98ea2b2a08cea02eae9c0212c3410a3d7bff)",
+ "gl_generator 0.0.1 (git+http://github.com/bjz/gl-rs#2857ad712bd443196983ea7c0bd4b6bdcf653e7c)",
+]
+
+[[package]]
+name = "image"
+version = "0.0.0"
+source = "git+https://github.com/PistonDevelopers/rust-image#2dacfa9a0f0090778f214e595820bbaa4b2b4a0f"
+
+[[package]]
+name = "khronos_api"
+version = "0.0.1"
+source = "git+http://github.com/bjz/gl-rs#2857ad712bd443196983ea7c0bd4b6bdcf653e7c"
+
+[[package]]
+name = "nalgebra"
+version = "0.1.0"
+source = "git+https://github.com/sebcrozet/nalgebra#ba18f5aa702846c7fd79d80b9eefc0372d7a00dc"
+
+[[package]]
+name = "rust-xml"
+version = "0.1.0"
+source = "git+https://github.com/netvl/rust-xml#ffd68eb2b4ba4ec34be1d9772e193e90727d44f9"
+
+[[package]]
+name = "shared"
+version = "0.0.1"
+

@@ -1,0 +1,12 @@
+[package]
+
+name = "client"
+version = "0.0.1"
+authors = ["Nathaniel Theis <nttheis@gmail.com>"]
+
+[dependencies.glium]
+git = "https://github.com/tomaka/glium"
+
+[dependencies.shared]
+path = "../shared"
+
