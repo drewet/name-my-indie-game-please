@@ -4,8 +4,12 @@ name = "client"
 version = "0.0.1"
 authors = ["Nathaniel Theis <nttheis@gmail.com>"]
 
-[dependencies.glium]
-git = "https://github.com/tomaka/glium"
+[dependencies.gfx]
+git = "https://github.com/gfx-rs/gfx-rs"
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs"
+default-features = false
 
 [dependencies.shared]
 path = "../shared"
