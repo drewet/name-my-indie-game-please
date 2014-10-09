@@ -124,6 +124,9 @@ impl EntityStore {
     pub fn is_alive(&self, &EntityID(id): &EntityID) -> bool {
         self.ents.get(id as uint)
     }
+    pub fn kill(&mut self, &EntityID(id): &EntityID) {
+        self.ents.set(id as uint, false);
+    }
 }
 #[cfg(test)]
 mod test {
@@ -139,7 +142,7 @@ mod test {
         let mut cstore = ComponentStore::new();
         let mut estore = EntityStore::new();
         let ent = estore.create_entity();
-        let comp = cstore.add_component(EntityID(0), TestStringComponent { name: "Hello, world!".to_string()});
+        let comp = cstore.add_component(ent, TestStringComponent { name: "Hello, world!".to_string()});
         cstore = cstore.gc(|ref id| estore.is_alive(id));
         assert_eq!(cstore.find(&comp).unwrap().payload.name.as_slice(), "Hello, world!");
     }
@@ -167,5 +170,9 @@ mod test {
         b.iter(|| for comp in cstore.iter() { ::test::black_box(comp) })
     }
 
-
-} 
+    /*fn bench_gc_2048_50percent(b: &mut Bencher) {
+        let mut cstore = ComponentStore::new();
+        let mut estore = EntityStore::new();
+        let ents = Vec::from_fn(2048, |_| estore.create_entity());
+    }*/
+}
