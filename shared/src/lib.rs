@@ -15,6 +15,7 @@
 //! and other things?
 
 extern crate nalgebra;
+extern crate test;
 
 pub mod entity;
 #[test]

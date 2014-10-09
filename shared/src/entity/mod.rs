@@ -104,24 +104,57 @@ impl EntityStore {
 }
 #[cfg(test)]
 mod test {
+    use test::Bencher;
     use super::{ComponentID, EntityID, Component, ComponentStore, EntityStore};
-    struct TestComponent {
-        id: ComponentID<TestComponent>,
+    struct TestStringComponent {
+        id: ComponentID<TestStringComponent>,
         entity: EntityID,
         name: String
     }
-    impl Component for TestComponent {
-        fn get_id(&self) -> ComponentID<TestComponent> { self.id }
+    struct TrivialComponent {
+        id: ComponentID<TrivialComponent>
+    }
+    impl Component for TrivialComponent {
+        fn get_id(&self) -> ComponentID<TrivialComponent> { self.id }
+        fn get_entity_id(&self) -> EntityID { unimplemented!() }
+    }
+    impl Component for TestStringComponent {
+        fn get_id(&self) -> ComponentID<TestStringComponent> { self.id }
         fn get_entity_id(&self) -> EntityID { self.entity }
     }
+
     #[test]
     fn smoke_componentstore() {
         let mut cstore = ComponentStore::new();
         let mut estore = EntityStore::new();
         let ent = estore.create_entity();
-        let comp = cstore.add_component(|id| TestComponent { id: id, entity: ent, name: "Hello, world!".to_string()});
+        let comp = cstore.add_component(|id| TestStringComponent { id: id, entity: ent, name: "Hello, world!".to_string()});
         cstore = cstore.gc(|ref id| estore.is_alive(id));
         assert_eq!(cstore.find(&comp).unwrap().name.as_slice(), "Hello, world!");
     }
+
+    #[bench]
+    fn bench_entcreation_singlecomponent(b: &mut Bencher) {
+        let mut cstore = ComponentStore::new();
+        b.iter(|| cstore.add_component(|id| TrivialComponent {id: id}));
+        ::test::black_box(cstore);
+    }
+
+    #[bench]
+    fn bench_componentid_lookup_2048(b: &mut Bencher) {
+        let mut cstore = ComponentStore::new();
+        let ids = Vec::from_fn(2048, |_| cstore.add_component(|id| TrivialComponent {id: id}));
+        for id in ids.iter() {
+            b.iter(|| cstore.find(id));
+        }
+    }
+
+    #[bench]
+    fn bench_component_iteration_2048(b: &mut Bencher) {
+        let mut cstore = ComponentStore::new();
+        let _ = Vec::from_fn(2048, |_| cstore.add_component(|id| TrivialComponent {id: id}));
+        b.iter(|| for comp in cstore.iter() { ::test::black_box(comp) })
+    }
+
 
 } 
