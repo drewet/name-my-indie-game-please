@@ -3,3 +3,6 @@
 name = "shared"
 version = "0.0.1"
 authors = ["Nathaniel Theis <nttheis@gmail.com>"]
+
+[dependencies.nalgebra]
+git = "https://github.com/sebcrozet/nalgebra"

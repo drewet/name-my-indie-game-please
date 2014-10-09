@@ -61,6 +61,11 @@ version = "0.0.1"
 source = "git+https://github.com/bjz/gl-rs.git#2857ad712bd443196983ea7c0bd4b6bdcf653e7c"
 
 [[package]]
+name = "nalgebra"
+version = "0.1.0"
+source = "git+https://github.com/sebcrozet/nalgebra#ba18f5aa702846c7fd79d80b9eefc0372d7a00dc"
+
+[[package]]
 name = "render"
 version = "0.1.0"
 source = "git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84"
@@ -81,4 +86,7 @@ source = "git+https://github.com/rust-lang/semver#5dee918159d4e3d84c1ee54cf6a530
 [[package]]
 name = "shared"
 version = "0.0.1"
+dependencies = [
+ "nalgebra 0.1.0 (git+https://github.com/sebcrozet/nalgebra#ba18f5aa702846c7fd79d80b9eefc0372d7a00dc)",
+]
 
