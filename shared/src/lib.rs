@@ -14,7 +14,6 @@
 //! Networking, because client and server need to talk to each other.
 //! and other things?
 
-extern crate nalgebra;
 extern crate test;
 
 pub mod entity;
