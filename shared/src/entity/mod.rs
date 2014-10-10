@@ -20,27 +20,6 @@ pub struct Component<Payload> {
     entity: EntityID,
     payload: Payload
 }
-/*
-impl<Payload> PartialEq for ComponentID<Payload> {
-    fn eq(&self, other: &ComponentID<Payload>) -> bool {
-        let (&ComponentID(thisid), &ComponentID(otherid)) = (self, other);
-        thisid == otherid
-    }
-}   
-impl<Payload> Ord for ComponentID<Payload> {
-    fn cmp(&self, other: &ComponentID<Payload>) -> Ordering {
-        let (&ComponentID(thisid), &ComponentID(otherid)) = (self, other);
-        thisid.cmp(&otherid)
-    }
-}   
-impl<Payload> PartialOrd for ComponentID<Payload> {
-    fn partial_cmp(&self, other: &ComponentID<Payload>) -> Option<Ordering> {
-        let (&ComponentID(thisid), &ComponentID(otherid)) = (self, other);
-        thisid.partial_cmp(&otherid)
-    }
-}
-impl<Payload> Eq for ComponentID<Payload> {}
-*/
 
 impl<Payload> PartialEq for Component<Payload> {
     fn eq(&self, other: &Component<Payload>) -> bool {
@@ -50,9 +29,15 @@ impl<Payload> PartialEq for Component<Payload> {
 impl<Payload> Eq for Component<Payload> {}
 
 impl<Payload> Component<Payload>  {
-    fn get_handle(&self) -> ComponentHandle<Payload> { self.handle }
+    pub fn get_handle(&self) -> ComponentHandle<Payload> { self.handle }
     /// Returns the ID of the entity this component is attached to.
-    fn get_entity_id(&self) -> EntityID { self.entity }
+    pub fn get_entity_id(&self) -> EntityID { self.entity }
+}
+impl<Payload> Deref<Payload> for Component<Payload> {
+    fn deref(&self) -> &Payload { &self.payload }
+}
+impl<Payload> DerefMut<Payload> for Component<Payload> {
+    fn deref_mut(&mut self) -> &mut Payload { &mut self.payload }
 }
 
 pub struct ComponentStore<Payload> {
@@ -127,7 +112,7 @@ impl EntityStore {
 #[cfg(test)]
 mod test {
     use test::Bencher;
-    use super::{ComponentHandle, EntityID, Component, ComponentStore, EntityStore};
+    use super::{EntityID, ComponentStore, EntityStore};
     struct TestStringComponent {
         name: String
     }
@@ -143,17 +128,17 @@ mod test {
     }
 
     #[bench]
-    fn bench_componentcreation_2048(b: &mut Bencher) {
+    fn bench_componentcreation_32(b: &mut Bencher) {
         b.iter(|| {
             let mut cstore = ComponentStore::new();
-            for _ in range(0u, 2048) {
+            for _ in range(0u, 32) {
                 cstore.add_component(EntityID(0), TrivialComponent);
             }
         })
     }
 
     #[bench]
-    fn bench_componentid_lookup_2048(b: &mut Bencher) {
+    fn bench_componentid_lookup(b: &mut Bencher) {
         let mut cstore = ComponentStore::new();
         let ids = Vec::from_fn(2048, |_| cstore.add_component(EntityID(0), TrivialComponent));
         b.iter(|| cstore.find(ids[ids.len()/2]));
