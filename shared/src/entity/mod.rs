@@ -56,7 +56,8 @@ impl<Payload> Component<Payload>  {
 }
 
 pub struct ComponentStore<Payload> {
-    components: Vec<Component<Payload>>,
+    // TODO: replace Vecs and stuff w/ fixed-size arrays
+    components: Vec<Option<Component<Payload>>>,
     free_ids: Bitv
 }
 
@@ -65,19 +66,24 @@ impl<Payload> ComponentStore<Payload> {
         ComponentStore { components: Vec::with_capacity(512), free_ids: Bitv::with_capacity(512, true) }
     }
 
-    pub fn iter(&self) -> std::slice::Items<Component<Payload>> { self.components.iter() }
+    pub fn iter(&self) -> std::iter::FilterMap<&Option<Component<Payload>>, &Component<Payload>, std::slice::Items<Option<Component<Payload>>>> { self.components.iter().filter_map(|comp| comp.as_ref())
+    }
 
     pub fn add_component(&mut self, entity: EntityID, payload: Payload) -> ComponentHandle<Payload> {
-        let result = self.components.iter().zip(self.free_ids.iter()).position(|(_, is_free)| is_free);
+        let result = self.components.iter().zip(self.free_ids.iter()).position(|(component, is_free)| component.is_none() && is_free);
         match result {
             Some(pos) => {
-                let old_serial = self.components[pos].handle.serial;
+                let old_serial = match self.components[pos] {
+                    Some(ref comp) => comp.handle.serial,
+                    None => 0
+                };
+
                 let handle = ComponentHandle { id: pos as u16, serial: old_serial.checked_add(&1).unwrap() };
-                *self.components.get_mut(pos) = Component {
+                *self.components.get_mut(pos) = Some(Component {
                     handle: handle,
                     entity: entity,
                     payload: payload
-                };
+                });
                 self.free_ids.set(pos, false);
                 handle
             }
@@ -87,22 +93,19 @@ impl<Payload> ComponentStore<Payload> {
                     serial: 0
                 };
                 self.free_ids.push(false);
-                self.components.push(Component {
+                self.components.push(Some(Component {
                     handle: handle,
                     entity: entity,
                     payload: payload
-                });
+                }));
                 handle
             }
         }
     }
 
     pub fn find(&self, handle: ComponentHandle<Payload>) -> Option<&Component<Payload>> {
-        if self.components[handle.id as uint].handle.serial == handle.serial {
-            Some(&self.components[handle.id as uint])
-        } else {
-            None
-        }
+        self.components[handle.id as uint].iter()
+                .filter(|comp| comp.handle.serial == handle.serial).next()
      }
 }
 
