@@ -143,9 +143,13 @@ mod test {
     }
 
     #[bench]
-    fn bench_entcreation_singlecomponent(b: &mut Bencher) {
-        let mut cstore = ComponentStore::new();
-        b.iter(|| cstore.add_component(EntityID(0), TrivialComponent));
+    fn bench_componentcreation_2048(b: &mut Bencher) {
+        b.iter(|| {
+            let mut cstore = ComponentStore::new();
+            for _ in range(0u, 2048) {
+                cstore.add_component(EntityID(0), TrivialComponent);
+            }
+        })
     }
 
     #[bench]
