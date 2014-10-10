@@ -1,0 +1,10 @@
+before_install:
+  - sudo add-apt-repository --yes ppa:hansjorg/rust
+  - sudo add-apt-repository --yes ppa:cmrx64/cargo
+  - sudo apt-get update -qq
+install:
+        - sudo apt-get install -qq rust-nightly cargo libglfw-dev
+script:
+        - cargo build --manifest-path=shared/Cargo.toml
+        - cargo build --manifest-path=server/Cargo.toml
+        - cargo build --manifest-path=client/Cargo.toml
