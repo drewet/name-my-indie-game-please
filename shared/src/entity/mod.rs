@@ -2,10 +2,11 @@ use std;
 use std::collections::Bitv;
 
 #[deriving(Eq, PartialEq, Ord, PartialOrd, Show)]
+/// A globally unique entity identifier.
 pub struct EntityID(u32);
 
 #[deriving(Show)]
-/// Type parameter used only for correctness.
+/// A handle to a component.
 pub struct ComponentHandle<Payload> {
     id: u16,
     serial: u16
@@ -15,6 +16,8 @@ impl<Payload> PartialEq for ComponentHandle<Payload> {
         self.id == other.id && self.serial == other.serial
     }
 }
+
+/// A component.
 pub struct Component<Payload> {
     handle: ComponentHandle<Payload>,
     entity: EntityID,
@@ -39,7 +42,7 @@ impl<Payload> Deref<Payload> for Component<Payload> {
 impl<Payload> DerefMut<Payload> for Component<Payload> {
     fn deref_mut(&mut self) -> &mut Payload { &mut self.payload }
 }
-
+/// Stores components.
 pub struct ComponentStore<Payload> {
     // TODO: replace Vecs and stuff w/ fixed-size arrays
     components: Vec<Option<Component<Payload>>>,
@@ -50,9 +53,11 @@ impl<Payload> ComponentStore<Payload> {
         ComponentStore { components: Vec::from_fn(2048, |_| None) }
     }
 
+    /// Iterate over all components.
     pub fn iter(&self) -> std::iter::FilterMap<&Option<Component<Payload>>, &Component<Payload>, std::slice::Items<Option<Component<Payload>>>> { self.components.iter().filter_map(|comp| comp.as_ref())
     }
-
+    
+    /// Add a component (by payload and entity ID.)
     pub fn add_component(&mut self, entity: EntityID, payload: Payload) -> ComponentHandle<Payload> {
         let result = self.components.iter().position(|component| component.is_none());
         match result {
@@ -85,27 +90,41 @@ impl<Payload> ComponentStore<Payload> {
         }
     }
 
+    /// Gets a reference to a component by handle, or None if the component is not found.
     pub fn find(&self, handle: ComponentHandle<Payload>) -> Option<&Component<Payload>> {
         self.components[handle.id as uint].iter()
-                .filter(|comp| comp.handle.serial == handle.serial).next()
-     }
+            .filter(|comp| comp.handle.serial == handle.serial).next()
+    }
+    /// Gets a mutable reference to a component by handle, or None if the component is not found.
+    pub fn find_mut(&mut self, handle: ComponentHandle<Payload>) -> Option<&mut Component<Payload>> {
+        self.components.get_mut(handle.id as uint).iter_mut()
+            .filter(|comp| comp.handle.serial == handle.serial).next()
+    }
 }
 
+/// Manages entity IDs.
+/// Does not store any data besides basic bookkeeping.
 pub struct EntityStore {
     ents: Bitv // true = alive
 }
 impl EntityStore {
     pub fn new() -> EntityStore { EntityStore { ents: Bitv::new() } }
+
+    /// Allocates a new entity ID.
     pub fn create_entity(&mut self) -> EntityID {
         let id = self.ents.len();
         self.ents.push(true);
         assert!(id < std::u32::MAX as uint);
         EntityID(id as u32)
     }
-    pub fn is_alive(&self, &EntityID(id): &EntityID) -> bool {
+
+    /// Returns whether an entity ID refers to a living entity.
+    pub fn is_alive(&self, EntityID(id): EntityID) -> bool {
         self.ents.get(id as uint)
     }
-    pub fn kill(&mut self, &EntityID(id): &EntityID) {
+    
+    /// This is entirely useless at the moment.
+    pub fn kill(&mut self, EntityID(id): EntityID) {
         self.ents.set(id as uint, false);
     }
 }
@@ -152,8 +171,8 @@ mod test {
     }
 
     /*fn bench_gc_2048_50percent(b: &mut Bencher) {
-        let mut cstore = ComponentStore::new();
-        let mut estore = EntityStore::new();
-        let ents = Vec::from_fn(2048, |_| estore.create_entity());
-    }*/
+      let mut cstore = ComponentStore::new();
+      let mut estore = EntityStore::new();
+      let ents = Vec::from_fn(2048, |_| estore.create_entity());
+      }*/
 }
