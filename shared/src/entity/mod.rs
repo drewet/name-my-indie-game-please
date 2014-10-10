@@ -58,19 +58,18 @@ impl<Payload> Component<Payload>  {
 pub struct ComponentStore<Payload> {
     // TODO: replace Vecs and stuff w/ fixed-size arrays
     components: Vec<Option<Component<Payload>>>,
-    free_ids: Bitv
 }
 
 impl<Payload> ComponentStore<Payload> {
     pub fn new() -> ComponentStore<Payload> {
-        ComponentStore { components: Vec::with_capacity(512), free_ids: Bitv::with_capacity(512, true) }
+        ComponentStore { components: Vec::from_fn(2048, |_| None) }
     }
 
     pub fn iter(&self) -> std::iter::FilterMap<&Option<Component<Payload>>, &Component<Payload>, std::slice::Items<Option<Component<Payload>>>> { self.components.iter().filter_map(|comp| comp.as_ref())
     }
 
     pub fn add_component(&mut self, entity: EntityID, payload: Payload) -> ComponentHandle<Payload> {
-        let result = self.components.iter().zip(self.free_ids.iter()).position(|(component, is_free)| component.is_none() && is_free);
+        let result = self.components.iter().position(|component| component.is_none());
         match result {
             Some(pos) => {
                 let old_serial = match self.components[pos] {
@@ -84,7 +83,6 @@ impl<Payload> ComponentStore<Payload> {
                     entity: entity,
                     payload: payload
                 });
-                self.free_ids.set(pos, false);
                 handle
             }
             None => {
@@ -92,7 +90,6 @@ impl<Payload> ComponentStore<Payload> {
                     id: self.components.len() as u16,
                     serial: 0
                 };
-                self.free_ids.push(false);
                 self.components.push(Some(Component {
                     handle: handle,
                     entity: entity,
