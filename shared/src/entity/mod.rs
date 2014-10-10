@@ -1,3 +1,4 @@
+/// hello, travis!
 use std;
 use std::collections::Bitv;
 
