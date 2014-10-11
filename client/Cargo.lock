@@ -3,8 +3,8 @@ name = "client"
 version = "0.0.1"
 dependencies = [
  "cgmath 0.0.1 (git+https://github.com/bjz/cgmath-rs#d981c349a0ffb13fb298f1ac1d5e5483ce860a81)",
- "gfx 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84)",
- "glfw 0.0.1 (git+https://github.com/bjz/glfw-rs#6e306baf5e520797cbaa8c9fb13e64e165535c4b)",
+ "gfx 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640)",
+ "glfw 0.0.1 (git+https://github.com/bjz/glfw-rs#84b7ec32b4acead41f0bfde224604a2cf5a21d8a)",
  "shared 0.0.1",
 ]
 
@@ -16,7 +16,7 @@ source = "git+https://github.com/bjz/cgmath-rs#d981c349a0ffb13fb298f1ac1d5e5483c
 [[package]]
 name = "device"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84"
+source = "git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640"
 dependencies = [
  "gfx_gl 0.1.0 (git+https://github.com/gfx-rs/gfx_gl.git#52bb510e9e76cd3c0aed7b6aa678c03059d630a6)",
 ]
@@ -24,11 +24,11 @@ dependencies = [
 [[package]]
 name = "gfx"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84"
+source = "git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640"
 dependencies = [
- "device 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84)",
- "gfx_macros 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84)",
- "render 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84)",
+ "device 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640)",
+ "gfx_macros 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640)",
+ "render 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640)",
 ]
 
 [[package]]
@@ -36,27 +36,27 @@ name = "gfx_gl"
 version = "0.1.0"
 source = "git+https://github.com/gfx-rs/gfx_gl.git#52bb510e9e76cd3c0aed7b6aa678c03059d630a6"
 dependencies = [
- "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git#2857ad712bd443196983ea7c0bd4b6bdcf653e7c)",
+ "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git#feed7be39546edb7e8781e3fbe5892caa41a5383)",
 ]
 
 [[package]]
 name = "gfx_macros"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84"
+source = "git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640"
 
 [[package]]
 name = "gl_generator"
 version = "0.0.1"
-source = "git+https://github.com/bjz/gl-rs.git#2857ad712bd443196983ea7c0bd4b6bdcf653e7c"
+source = "git+https://github.com/bjz/gl-rs.git#feed7be39546edb7e8781e3fbe5892caa41a5383"
 dependencies = [
- "khronos_api 0.0.1 (git+https://github.com/bjz/gl-rs.git#2857ad712bd443196983ea7c0bd4b6bdcf653e7c)",
+ "khronos_api 0.0.1 (git+https://github.com/bjz/gl-rs.git#feed7be39546edb7e8781e3fbe5892caa41a5383)",
  "rust-xml 0.1.0 (git+https://github.com/netvl/rust-xml#f86f02b3b1c355080136b0acc322b3318c195cda)",
 ]
 
 [[package]]
 name = "glfw"
 version = "0.0.1"
-source = "git+https://github.com/bjz/glfw-rs#6e306baf5e520797cbaa8c9fb13e64e165535c4b"
+source = "git+https://github.com/bjz/glfw-rs#84b7ec32b4acead41f0bfde224604a2cf5a21d8a"
 dependencies = [
  "semver 0.1.0 (git+https://github.com/rust-lang/semver#5dee918159d4e3d84c1ee54cf6a5305e6f7bd557)",
 ]
@@ -64,14 +64,14 @@ dependencies = [
 [[package]]
 name = "khronos_api"
 version = "0.0.1"
-source = "git+https://github.com/bjz/gl-rs.git#2857ad712bd443196983ea7c0bd4b6bdcf653e7c"
+source = "git+https://github.com/bjz/gl-rs.git#feed7be39546edb7e8781e3fbe5892caa41a5383"
 
 [[package]]
 name = "render"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84"
+source = "git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640"
 dependencies = [
- "device 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#eb7a628a8f189cc06681dddd205d3bd04dc88a84)",
+ "device 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#f76dc7931692bc234899a8ce5b7416cec4225640)",
 ]
 
 [[package]]

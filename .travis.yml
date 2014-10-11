@@ -5,10 +5,16 @@ language: rust
 script:
         - cd shared
         - cargo build 
+        - cargo test
+        - cargo doc
         - cd ../server
         - cargo build
+        - cargo test
+        - cargo doc
         - cd ../client
         - cargo build
+        - cargo test
+        - cargo doc
         - cd ..
 after_script:
   - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh

@@ -90,6 +90,20 @@ impl<Payload> ComponentStore<Payload> {
         }
     }
 
+    /// Removes a component by handle.
+    /// Returns whether the component was found.
+    pub fn remove(&mut self, handle: ComponentHandle<Payload>) -> bool {
+        let found = match self.components[handle.id as uint] {
+            Some(ref comp) if comp.handle.serial == handle.serial => { true },
+            _ => false
+        };
+
+        if found {
+            *self.components.get_mut(handle.id as uint) = None;
+        }
+        found
+    }
+
     /// Gets a reference to a component by handle, or None if the component is not found.
     pub fn find(&self, handle: ComponentHandle<Payload>) -> Option<&Component<Payload>> {
         self.components[handle.id as uint].iter()
@@ -144,6 +158,17 @@ mod test {
         let ent = estore.create_entity();
         let comp = cstore.add_component(ent, TestStringComponent { name: "Hello, world!".to_string()});
         assert_eq!(cstore.find(comp).unwrap().payload.name.as_slice(), "Hello, world!");
+    }
+
+    #[test]
+    fn component_removal() { 
+        let mut cstore = ComponentStore::new();
+        let mut estore = EntityStore::new();
+        let ent = estore.create_entity();
+        let comp = cstore.add_component(ent, TestStringComponent { name: "Hello, world!".to_string()});
+        assert!(cstore.remove(comp));
+        
+        assert!(cstore.find(comp).is_none());
     }
 
     #[bench]

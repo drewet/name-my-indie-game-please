@@ -32,7 +32,6 @@ fn main() {
 
 fn gameloop() {
     use shared::entity::{Component,
-        ComponentID,
         ComponentStore,
         EntityID,
         EntityStore
