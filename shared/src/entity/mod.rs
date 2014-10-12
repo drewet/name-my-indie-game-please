@@ -51,7 +51,6 @@ impl<Payload> ComponentBookkeeper<Payload> {
 /// Stores components.
 pub struct ComponentStore<Payload> {
     // TODO: replace Vecs and stuff w/ fixed-size arrays
-    // tuple is (serial, actual component)
     components: Vec<ComponentBookkeeper<Payload>>
 }
 
