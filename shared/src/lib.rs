@@ -14,9 +14,17 @@
 //! Networking, because client and server need to talk to each other.
 //! and other things?
 
+extern crate cgmath;
 extern crate test;
 
+pub use entity::{
+    Component, ComponentStore, ComponentHandle, EntityID, EntityStore,
+
+    PositionComponent
+};
+
 pub mod entity;
+    
 #[test]
 fn it_works() {
 }

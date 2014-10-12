@@ -1,5 +1,7 @@
 use std;
 use std::collections::Bitv;
+pub use self::components::PositionComponent;
+pub mod components;
 
 #[deriving(Eq, PartialEq, Ord, PartialOrd, Show)]
 /// A globally unique entity identifier.
@@ -165,10 +167,30 @@ mod test {
         let mut cstore = ComponentStore::new();
         let mut estore = EntityStore::new();
         let ent = estore.create_entity();
-        let comp = cstore.add_component(ent, TestStringComponent { name: "Hello, world!".to_string()});
+        let comp = cstore.add_component(ent, TrivialComponent);
         assert!(cstore.remove(comp));
         
         assert!(cstore.find(comp).is_none());
+        assert!(cstore.iter().next().is_none());
+        assert_eq!(cstore.remove(comp), false);
+    }
+
+    #[test]
+    // Make sure the underlying Vec does not grow if there is free space
+    fn component_leak_check() { 
+        let mut cstore = ComponentStore::new();
+        let mut estore = EntityStore::new();
+        let ent = estore.create_entity();
+
+        let mut comp = cstore.add_component(ent, TrivialComponent);
+        let first_len = cstore.components.len();
+
+        for _ in range(0u, 10000) {
+            cstore.remove(comp);
+            comp = cstore.add_component(ent, TrivialComponent);
+        }
+        
+        assert_eq!(cstore.components.len(), first_len);
     }
 
     #[bench]
@@ -178,6 +200,16 @@ mod test {
             for _ in range(0u, 32) {
                 cstore.add_component(EntityID(0), TrivialComponent);
             }
+        })
+    }
+
+    #[bench]
+    fn bench_componentcreationandremoval(b: &mut Bencher) {
+        let mut cstore = ComponentStore::new();
+        b.iter(|| {
+            let handle = cstore.add_component(EntityID(0), TrivialComponent);
+            ::test::black_box(&mut cstore);
+            cstore.remove(handle);
         })
     }
 
@@ -192,6 +224,17 @@ mod test {
     fn bench_component_iteration_2048(b: &mut Bencher) {
         let mut cstore = ComponentStore::new();
         let _ = Vec::from_fn(2048, |_| cstore.add_component(EntityID(0), TrivialComponent));
+        b.iter(|| for comp in cstore.iter() { ::test::black_box(comp) })
+    }
+
+    #[bench]
+    fn bench_component_iteration_1024_fragmented(b: &mut Bencher) {
+        let mut cstore = ComponentStore::new();
+        let ids = Vec::from_fn(2048, |_| cstore.add_component(EntityID(0), TrivialComponent));
+        for x in ids.iter().enumerate().filter_map(|(pos, &id)| if pos%2 == 0 { Some(id) } else { None }) {
+            cstore.remove(x);
+        }
+
         b.iter(|| for comp in cstore.iter() { ::test::black_box(comp) })
     }
 

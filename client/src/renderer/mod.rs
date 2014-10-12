@@ -1,24 +1,29 @@
+use shared::entity::ComponentStore;
+use shared::entity::ComponentHandle;
+use shared::PositionComponent;
+use cgmath;
 use cgmath::FixedArray;
 use cgmath::{Matrix4, Point3, Vector3};
 use cgmath::{Transform, AffineMatrix3};
 use gfx;
 use glfw;
-use gfx::{DeviceHelper, ToSlice};
+use gfx::{Device, DeviceHelper, ToSlice};
 use glfw::Context;
 
 #[shader_param(DebugBox)]
 struct Params {
     #[name = "u_MVP"]
     mvp: [[f32, ..4], ..4],
+    
+    #[name = "u_Color"]
+    color: [f32, ..3]
 }
 
 #[vertex_format]
 struct Vertex {
     #[name = "a_Pos"]
-    pos: [f32, ..2],
-
-    #[name = "a_Color"]
-    color: [f32, ..3],
+    #[as_float]
+    pos: [i8, ..3],
 }
 
 static VERTEX_SRC: gfx::ShaderSource = shaders! {
@@ -26,14 +31,14 @@ GLSL_150: b"
     #version 150 core
     
     uniform mat4 u_MVP;
+    uniform vec3 u_Color;
 
-    in vec2 a_Pos;
-    in vec3 a_Color;
+    in vec3 a_Pos;
     out vec4 v_Color;
 
     void main() {
-        v_Color = vec4(a_Color, 1.0);
-        gl_Position = u_MVP * vec4(a_Pos, -10.0, 1.0);
+        v_Color = vec4(u_Color, 1.0);
+        gl_Position = u_MVP * vec4(a_Pos, 1.0);
     }
 "
 };
@@ -50,35 +55,109 @@ GLSL_150: b"
     }
 "
 };
-// FIXME: There's a memory leak somewhere in here...
-pub fn render(window: &glfw::Window, frame: &gfx::Frame, graphics: &mut gfx::Graphics<gfx::GlDevice, gfx::GlCommandBuffer>) { 
-    let vertex_data = [
-        Vertex { pos: [ -0.5, -0.5 ], color: [1.0, 0.0, 0.0] },
-        Vertex { pos: [  0.5, -0.5 ], color: [0.0, 1.0, 0.0] },
-        Vertex { pos: [  0.0,  0.5 ], color: [0.0, 0.0, 1.0] },
-    ];
 
-    let mesh = graphics.device.create_mesh(vertex_data);
-    let slice = mesh.to_slice(gfx::TriangleList);
+pub struct RenderComponent {
+    pub pos: ComponentHandle<PositionComponent>
+}
 
-    let program = graphics.device.link_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone())
-                        .unwrap();
+pub struct Renderer {
+    window: glfw::Window,
+    frame: gfx::Frame,
+    graphics: gfx::Graphics<gfx::GlDevice, gfx::GlCommandBuffer>,
 
-    let data = Params { mvp: ::cgmath::perspective(::cgmath::deg(60.0f32), 640.0/480.0,
-                                  0.1, 1000.0).into_fixed() };
+    // this stuff is temporary for drawing debug boxes
+    shader: gfx::ProgramHandle,
+    mesh: gfx::Mesh,
+    indices: gfx::BufferHandle<u8>
+}
+impl Renderer {
+    /// Quickly open a new window
+    /// and begin rendering.
+    pub fn new(glfw: &mut glfw::Glfw, window: glfw::Window) -> Renderer {
+                let (w, h) = window.get_framebuffer_size();
+        let frame = gfx::Frame::new(w as u16, h as u16);
 
-    let batch: DebugBox = graphics.make_batch(
-        &program, &mesh, slice, &gfx::DrawState::new()).unwrap();
+        let mut device = gfx::GlDevice::new(|s| window.get_proc_address(s));
+        let mut graphics = gfx::Graphics::new(device);
 
-    let clear_data = gfx::ClearData {
-        color: [0.3, 0.3, 0.3, 1.0],
-        depth: 1.0,
-        stencil: 0,
-    };
+        let shader = graphics.device.link_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone())
+            .unwrap();
+        
+        let vertex_data = [
+            // top (0, 0, 1)
+            Vertex { pos: [-1, -1,  1]},
+            Vertex { pos: [ 1, -1,  1]},
+            Vertex { pos: [ 1,  1,  1]},
+            Vertex { pos: [-1,  1,  1]},
+            // bottom (0, 0, -1)
+            Vertex { pos: [ 1,  1, -1]},
+            Vertex { pos: [-1,  1, -1]},
+            Vertex { pos: [-1, -1, -1]},
+            Vertex { pos: [ 1, -1, -1]},
+            // right (1, 0, 0)
+            Vertex { pos: [ 1, -1, -1]},
+            Vertex { pos: [ 1,  1, -1]},
+            Vertex { pos: [ 1,  1,  1]},
+            Vertex { pos: [ 1, -1,  1]},
+            // left (-1, 0, 0)
+            Vertex { pos: [-1,  1,  1]},
+            Vertex { pos: [-1, -1,  1]},
+            Vertex { pos: [-1, -1, -1]},
+            Vertex { pos: [-1,  1, -1]},
+            // front (0, 1, 0)
+            Vertex { pos: [-1,  1, -1]},
+            Vertex { pos: [ 1,  1, -1]},
+            Vertex { pos: [ 1,  1,  1]},
+            Vertex { pos: [-1,  1,  1]},
+            // back (0, -1, 0)
+            Vertex { pos: [ 1, -1,  1]},
+            Vertex { pos: [-1, -1,  1]},
+            Vertex { pos: [-1, -1, -1]},
+            Vertex { pos: [ 1, -1, -1]}
+        ];
 
-    graphics.clear(clear_data, gfx::Color, frame);
-    graphics.draw(&batch, &data, frame);
-    graphics.end_frame();
+        let index_data: &[u8] = [
+            0,  1,  2,  2,  3,  0, // top
+            4,  5,  6,  6,  7,  4, // bottom
+            8,  9, 10, 10, 11,  8, // right
+            12, 13, 14, 14, 16, 12, // left
+            16, 17, 18, 18, 19, 16, // front
+            20, 21, 22, 22, 23, 20 // back
+        ];
+        let mesh = graphics.device.create_mesh(vertex_data);
+        let indices = graphics.device.create_buffer_static::<u8>(index_data);
+        
+        Renderer {
+            window: window,
+            frame: frame,
+            graphics: graphics,
+            shader: shader,
+            mesh: mesh,
+            indices: indices
+        }
+    }
 
-    window.swap_buffers();
+    pub fn render(&mut self, renderables: &ComponentStore<RenderComponent>, positions: &ComponentStore<PositionComponent>) {
+
+        let batch: DebugBox = self.graphics.make_batch(
+            &self.shader, &self.mesh, self.indices.to_slice(gfx::TriangleList), &gfx::DrawState::new()).unwrap();
+
+        let clear_data = gfx::ClearData {
+            color: [0.3, 0.3, 0.3, 1.0],
+            depth: 1.0,
+            stencil: 0,
+        };
+
+        self.graphics.clear(clear_data, gfx::Color, &self.frame);
+        
+        let proj = cgmath::perspective(cgmath::deg(90.0f32), 640.0/480.0, 0.1, 1000.0);
+        for &renderable in renderables.iter() {
+            let pos = positions.find(renderable.pos).unwrap();
+            let model = cgmath::Matrix4::from_translation(&pos.pos);
+            self.graphics.draw(&batch, &Params { color: [0.0, 1.0, 0.0], mvp: (proj*model).into_fixed()}, &self.frame);
+        }
+        self.graphics.end_frame();
+
+        self.window.swap_buffers();
+    }
 }
