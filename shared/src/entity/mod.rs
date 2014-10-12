@@ -74,7 +74,10 @@ impl<Payload> ComponentStore<Payload> {
         
         let comp = self.components.get_mut(pos);
 
-        comp.bump_serial();
+        // Note: we do NOT bump the serial here.
+        // It is only done on component destruction
+        // This is because it's impossible to get a handle that points to a bookkeeper
+        // without a component inside it.
 
         comp.component = Some(Component {
             entity: entity,
