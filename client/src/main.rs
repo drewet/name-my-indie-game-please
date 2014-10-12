@@ -34,18 +34,13 @@ fn main() {
 }
 
 fn gameloop() {
-    use shared::entity::{ComponentStore,
-        EntityID,
-        EntityStore
-    };
+    use shared::component::ComponentStore;
 
-    let mut estore = EntityStore::new();
     let mut positions = ComponentStore::new();
     let mut renderables = ComponentStore::new();
-    let ent = estore.create_entity();
 
-    let pos = positions.add_component(ent, PositionComponent { pos: cgmath::Vector3::new(1.0, 0.0, -5.0) } );
-    let renderable = renderables.add_component(ent, RenderComponent { pos: pos });
+    let pos = positions.add(PositionComponent { pos: cgmath::Vector3::new(1.0, 0.0, -5.0) } );
+    let renderable = renderables.add(RenderComponent { pos: pos });
     
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 

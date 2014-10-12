@@ -17,14 +17,10 @@
 extern crate cgmath;
 extern crate test;
 
-pub use entity::{
-    ComponentStore, ComponentHandle, EntityID, EntityStore,
+pub use component::{
+    ComponentStore, ComponentHandle,
 
     PositionComponent
 };
 
-pub mod entity;
-    
-#[test]
-fn it_works() {
-}
+pub mod component;

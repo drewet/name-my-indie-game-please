@@ -1,5 +1,5 @@
-use shared::entity::ComponentStore;
-use shared::entity::ComponentHandle;
+use shared::component::ComponentStore;
+use shared::component::ComponentHandle;
 use shared::PositionComponent;
 use cgmath;
 use cgmath::FixedArray;

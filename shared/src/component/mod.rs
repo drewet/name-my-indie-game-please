@@ -1,11 +1,6 @@
 use std;
-use std::collections::Bitv;
 pub use self::components::PositionComponent;
 pub mod components;
-
-#[deriving(Eq, PartialEq, Ord, PartialOrd, Show)]
-/// A globally unique entity identifier.
-pub struct EntityID(u32);
 
 #[deriving(Show)]
 /// A handle to a component.
@@ -50,8 +45,8 @@ impl<Component> ComponentStore<Component> {
         self.components.iter().filter_map(|&ComponentBookkeeper{component: ref comp, ..}| comp.as_ref())
     }
     
-    /// Add a component (by payload and entity ID.)
-    pub fn add_component(&mut self, entity: EntityID, component: Component) -> ComponentHandle<Component> {
+    /// Add a component
+    pub fn add(&mut self, component: Component) -> ComponentHandle<Component> {
         let result = self.components.iter().position(|bookkeeper| bookkeeper.component.is_none());
         let pos = result.expect("Out of room in ComponentStore!");
         
@@ -101,37 +96,10 @@ impl<Component> ComponentStore<Component> {
         }
     }
 }
-
-/// Manages entity IDs.
-/// Does not store any data besides basic bookkeeping.
-pub struct EntityStore {
-    ents: Bitv // true = alive
-}
-impl EntityStore {
-    pub fn new() -> EntityStore { EntityStore { ents: Bitv::new() } }
-
-    /// Allocates a new entity ID.
-    pub fn create_entity(&mut self) -> EntityID {
-        let id = self.ents.len();
-        self.ents.push(true);
-        assert!(id < std::u32::MAX as uint);
-        EntityID(id as u32)
-    }
-
-    /// Returns whether an entity ID refers to a living entity.
-    pub fn is_alive(&self, EntityID(id): EntityID) -> bool {
-        self.ents.get(id as uint)
-    }
-
-    /// This is entirely useless at the moment.
-    pub fn kill(&mut self, EntityID(id): EntityID) {
-        self.ents.set(id as uint, false);
-    }
-}
 #[cfg(test)]
 mod test {
     use test::Bencher;
-    use super::{EntityID, ComponentStore, EntityStore};
+    use super::{ComponentStore};
     struct TestStringComponent {
         name: String
     }
@@ -140,18 +108,14 @@ mod test {
     #[test]
     fn smoke_componentstore() {
         let mut cstore = ComponentStore::new();
-        let mut estore = EntityStore::new();
-        let ent = estore.create_entity();
-        let comp = cstore.add_component(ent, TestStringComponent { name: "Hello, world!".to_string()});
+        let comp = cstore.add(TestStringComponent { name: "Hello, world!".to_string()});
         assert_eq!(cstore.find(comp).unwrap().name.as_slice(), "Hello, world!");
     }
 
     #[test]
     fn component_removal() { 
         let mut cstore = ComponentStore::new();
-        let mut estore = EntityStore::new();
-        let ent = estore.create_entity();
-        let comp = cstore.add_component(ent, TrivialComponent);
+        let comp = cstore.add(TrivialComponent);
         assert!(cstore.remove(comp));
 
         assert!(cstore.find(comp).is_none());
@@ -160,7 +124,7 @@ mod test {
 
         // Now make sure serials do their job
         // and prevent an old handle from referencing a new component.
-        let new_comp = cstore.add_component(ent, TrivialComponent);
+        let new_comp = cstore.add(TrivialComponent);
         assert_eq!(new_comp.id, comp.id); // just checking
         assert!(cstore.find(comp).is_none());
     }
@@ -169,15 +133,13 @@ mod test {
     // Make sure the underlying Vec does not grow if there is free space
     fn component_leak_check() { 
         let mut cstore = ComponentStore::new();
-        let mut estore = EntityStore::new();
-        let ent = estore.create_entity();
 
-        let mut comp = cstore.add_component(ent, TrivialComponent);
+        let mut comp = cstore.add(TrivialComponent);
         let first_len = cstore.components.len();
 
         for _ in range(0u, 10000) {
             cstore.remove(comp);
-            comp = cstore.add_component(ent, TrivialComponent);
+            comp = cstore.add(TrivialComponent);
         }
 
         assert_eq!(cstore.components.len(), first_len);
@@ -188,8 +150,9 @@ mod test {
         b.iter(|| {
             let mut cstore = ComponentStore::new();
             for _ in range(0u, 32) {
-                cstore.add_component(EntityID(0), TrivialComponent);
+                cstore.add(TrivialComponent);
             }
+            ::test::black_box(&mut cstore);
         })
     }
 
@@ -197,7 +160,7 @@ mod test {
     fn bench_componentcreationandremoval(b: &mut Bencher) {
         let mut cstore = ComponentStore::new();
         b.iter(|| {
-            let handle = cstore.add_component(EntityID(0), TrivialComponent);
+            let handle = cstore.add(TrivialComponent);
             ::test::black_box(&mut cstore);
             cstore.remove(handle);
         })
@@ -206,21 +169,21 @@ mod test {
     #[bench]
     fn bench_componentid_lookup(b: &mut Bencher) {
         let mut cstore = ComponentStore::new();
-        let ids = Vec::from_fn(2048, |_| cstore.add_component(EntityID(0), TrivialComponent));
+        let ids = Vec::from_fn(2048, |_| cstore.add(TrivialComponent));
         b.iter(|| cstore.find(ids[ids.len()/2]));
     }
 
     #[bench]
     fn bench_component_iteration_2048(b: &mut Bencher) {
         let mut cstore = ComponentStore::new();
-        let _ = Vec::from_fn(2048, |_| cstore.add_component(EntityID(0), TrivialComponent));
+        let _ = Vec::from_fn(2048, |_| cstore.add(TrivialComponent));
         b.iter(|| for comp in cstore.iter() { ::test::black_box(comp) })
     }
 
     #[bench]
     fn bench_component_iteration_1024_fragmented(b: &mut Bencher) {
         let mut cstore = ComponentStore::new();
-        let ids = Vec::from_fn(2048, |_| cstore.add_component(EntityID(0), TrivialComponent));
+        let ids = Vec::from_fn(2048, |_| cstore.add(TrivialComponent));
         for x in ids.iter().enumerate().filter_map(|(pos, &id)| if pos%2 == 0 { Some(id) } else { None }) {
             cstore.remove(x);
         }
