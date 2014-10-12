@@ -18,7 +18,7 @@ extern crate cgmath;
 extern crate test;
 
 pub use entity::{
-    Component, ComponentStore, ComponentHandle, EntityID, EntityStore,
+    ComponentStore, ComponentHandle, EntityID, EntityStore,
 
     PositionComponent
 };

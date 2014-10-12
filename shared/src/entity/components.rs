@@ -1,4 +1,3 @@
-use super::{Component, ComponentHandle};
 use cgmath;
 
 pub struct PositionComponent {

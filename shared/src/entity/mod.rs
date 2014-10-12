@@ -9,53 +9,36 @@ pub struct EntityID(u32);
 
 #[deriving(Show)]
 /// A handle to a component.
-pub struct ComponentHandle<Payload> {
+pub struct ComponentHandle<Component> {
     id: u16,
     serial: u32
 }
-impl<Payload> PartialEq for ComponentHandle<Payload> {
-    fn eq(&self, other: &ComponentHandle<Payload>) -> bool {
+impl<Component> PartialEq for ComponentHandle<Component> {
+    fn eq(&self, other: &ComponentHandle<Component>) -> bool {
         self.id == other.id && self.serial == other.serial
     }
 }
 
-/// A component.
-pub struct Component<Payload> {
-    entity: EntityID,
-    payload: Payload
-}
-
-impl<Payload> Component<Payload>  {
-    /// Returns the ID of the entity this component is attached to.
-    pub fn get_entity_id(&self) -> EntityID { self.entity }
-}
-impl<Payload> Deref<Payload> for Component<Payload> {
-    fn deref(&self) -> &Payload { &self.payload }
-}
-impl<Payload> DerefMut<Payload> for Component<Payload> {
-    fn deref_mut(&mut self) -> &mut Payload { &mut self.payload }
-}
-
 /// This has to be public for iterator reasons.
 /// Should fix later.
-pub struct ComponentBookkeeper<Payload> {
+pub struct ComponentBookkeeper<Component> {
     serial: u32,
-    component: Option<Component<Payload>>
+    component: Option<Component>
 }
-impl<Payload> ComponentBookkeeper<Payload> {
+impl<Component> ComponentBookkeeper<Component> {
     pub fn bump_serial(&mut self) {
         self.serial = self.serial.checked_add(&1).expect("Serial no. overflow!");
     }
 }
 
 /// Stores components.
-pub struct ComponentStore<Payload> {
+pub struct ComponentStore<Component> {
     // TODO: replace Vecs and stuff w/ fixed-size arrays
-    components: Vec<ComponentBookkeeper<Payload>>
+    components: Vec<ComponentBookkeeper<Component>>
 }
 
-impl<Payload> ComponentStore<Payload> {
-    pub fn new() -> ComponentStore<Payload> {
+impl<Component> ComponentStore<Component> {
+    pub fn new() -> ComponentStore<Component> {
         ComponentStore { components: Vec::from_fn(2048, |_| ComponentBookkeeper {
             serial: 0,
             component: None
@@ -63,12 +46,12 @@ impl<Payload> ComponentStore<Payload> {
     }
 
     /// Iterate over all components.
-    pub fn iter(&self) -> std::iter::FilterMap<&ComponentBookkeeper<Payload>, &Component<Payload>, std::slice::Items<ComponentBookkeeper<Payload>>> {
+    pub fn iter(&self) -> std::iter::FilterMap<&ComponentBookkeeper<Component>, &Component, std::slice::Items<ComponentBookkeeper<Component>>> {
         self.components.iter().filter_map(|&ComponentBookkeeper{component: ref comp, ..}| comp.as_ref())
     }
     
     /// Add a component (by payload and entity ID.)
-    pub fn add_component(&mut self, entity: EntityID, payload: Payload) -> ComponentHandle<Payload> {
+    pub fn add_component(&mut self, entity: EntityID, component: Component) -> ComponentHandle<Component> {
         let result = self.components.iter().position(|bookkeeper| bookkeeper.component.is_none());
         let pos = result.expect("Out of room in ComponentStore!");
         
@@ -79,19 +62,14 @@ impl<Payload> ComponentStore<Payload> {
         // This is because it's impossible to get a handle that points to a bookkeeper
         // without a component inside it.
 
-        comp.component = Some(Component {
-            entity: entity,
-            payload: payload
-        });
+        comp.component = Some(component);
 
-        let handle = ComponentHandle { id: pos as u16, serial: comp.serial };
-
-        handle
+        ComponentHandle { id: pos as u16, serial: comp.serial }
     }
 
     /// Removes a component by handle.
     /// Returns whether the component was found.
-    pub fn remove(&mut self, handle: ComponentHandle<Payload>) -> bool {
+    pub fn remove(&mut self, handle: ComponentHandle<Component>) -> bool {
         match self.components.get_mut(handle.id as uint) {
             ref mut bookkeeper if bookkeeper.serial == handle.serial => {
                 bookkeeper.bump_serial();
@@ -103,7 +81,7 @@ impl<Payload> ComponentStore<Payload> {
     }
 
     /// Gets a reference to a component by handle, or None if the component is not found.
-    pub fn find(&self, handle: ComponentHandle<Payload>) -> Option<&Component<Payload>> {
+    pub fn find(&self, handle: ComponentHandle<Component>) -> Option<&Component> {
         let bookkeeper = &self.components[handle.id as uint];
 
         if bookkeeper.serial == handle.serial {
@@ -113,7 +91,7 @@ impl<Payload> ComponentStore<Payload> {
         }
     }
     /// Gets a mutable reference to a component by handle, or None if the component is not found.
-    pub fn find_mut(&mut self, handle: ComponentHandle<Payload>) -> Option<&mut Component<Payload>> {
+    pub fn find_mut(&mut self, handle: ComponentHandle<Component>) -> Option<&mut Component> {
         let bookkeeper = self.components.get_mut(handle.id as uint);
 
         if bookkeeper.serial == handle.serial {
@@ -165,7 +143,7 @@ mod test {
         let mut estore = EntityStore::new();
         let ent = estore.create_entity();
         let comp = cstore.add_component(ent, TestStringComponent { name: "Hello, world!".to_string()});
-        assert_eq!(cstore.find(comp).unwrap().payload.name.as_slice(), "Hello, world!");
+        assert_eq!(cstore.find(comp).unwrap().name.as_slice(), "Hello, world!");
     }
 
     #[test]

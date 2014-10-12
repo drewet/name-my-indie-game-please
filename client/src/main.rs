@@ -34,8 +34,7 @@ fn main() {
 }
 
 fn gameloop() {
-    use shared::entity::{Component,
-        ComponentStore,
+    use shared::entity::{ComponentStore,
         EntityID,
         EntityStore
     };
