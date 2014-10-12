@@ -177,6 +177,12 @@ mod test {
         assert!(cstore.find(comp).is_none());
         assert!(cstore.iter().next().is_none());
         assert_eq!(cstore.remove(comp), false);
+
+        // Now make sure serials do their job
+        // and prevent an old handle from referencing a new component.
+        let new_comp = cstore.add_component(ent, TrivialComponent);
+        assert_eq!(new_comp.id, comp.id); // just checking
+        assert!(cstore.find(comp).is_none());
     }
 
     #[test]
