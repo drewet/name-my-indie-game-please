@@ -24,3 +24,7 @@ pub use component::{
 };
 
 pub mod component;
+pub mod physics;
+
+/// Length of one simulation tick, in seconds.
+pub static TICK_LENGTH: f32 = 1.0 / 128.0;

@@ -44,7 +44,11 @@ impl<Component> ComponentStore<Component> {
     pub fn iter(&self) -> std::iter::FilterMap<&ComponentBookkeeper<Component>, &Component, std::slice::Items<ComponentBookkeeper<Component>>> {
         self.components.iter().filter_map(|&ComponentBookkeeper{component: ref comp, ..}| comp.as_ref())
     }
-    
+    /// Iterate over all components, mutably.
+    pub fn iter_mut(&mut self) -> std::iter::FilterMap<&mut ComponentBookkeeper<Component>, &mut Component, std::slice::MutItems<ComponentBookkeeper<Component>>> {
+        self.components.iter_mut().filter_map(|&ComponentBookkeeper{component: ref mut comp, ..}| comp.as_mut())
+    }
+
     /// Add a component
     pub fn add(&mut self, component: Component) -> ComponentHandle<Component> {
         let result = self.components.iter().position(|bookkeeper| bookkeeper.component.is_none());

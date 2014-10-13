@@ -38,10 +38,12 @@ fn gameloop() {
 
     let mut positions = ComponentStore::new();
     let mut renderables = ComponentStore::new();
+    let mut physicals = ComponentStore::new();
 
     let pos = positions.add(PositionComponent { pos: cgmath::Vector3::new(1.0, 0.0, -5.0) } );
-    let renderable = renderables.add(RenderComponent { pos: pos });
-    
+    renderables.add(RenderComponent { pos: pos });
+    physicals.add(shared::physics::PhysicsComponent::new(pos));
+
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     glfw.window_hint(glfw::ContextVersion(3, 2));
@@ -80,8 +82,8 @@ fn gameloop() {
         positions.find_mut(pos).map(|comp| {
             comp.pos = comp.pos + motion.unwrap_or(Vector3::new(0., 0., 0.));
         });
+        shared::physics::simulate_tick(&mut physicals, &mut positions);
 
         renderer.render(&renderables, &positions);
-        // unimplemented!()
     }
 }
