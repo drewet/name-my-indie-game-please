@@ -3,7 +3,8 @@ use shared::component::ComponentHandle;
 use shared::PositionComponent;
 use cgmath;
 use cgmath::FixedArray;
-use cgmath::{Matrix4, Point3, Vector3};
+use cgmath::Deg;
+use cgmath::{Matrix4, Matrix, Point, Point3, Vector3, ToMatrix4};
 use cgmath::{Transform, AffineMatrix3};
 use gfx;
 use glfw;
@@ -58,6 +59,18 @@ GLSL_150: b"
 
 pub struct RenderComponent {
     pub pos: ComponentHandle<PositionComponent>
+}
+pub struct CameraComponent {
+    pos: ComponentHandle<PositionComponent>,
+    fov: Deg<f32>
+}
+impl CameraComponent {
+    pub fn new(pos: ComponentHandle<PositionComponent>) -> CameraComponent {
+        CameraComponent {
+            pos: pos,
+            fov: cgmath::deg(90.)
+        }
+    }
 }
 
 pub struct Renderer {
@@ -137,7 +150,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, renderables: &ComponentStore<RenderComponent>, positions: &ComponentStore<PositionComponent>) {
+    pub fn render(&mut self, cam: &CameraComponent, renderables: &ComponentStore<RenderComponent>, positions: &ComponentStore<PositionComponent>) {
 
         let batch: DebugBox = self.graphics.make_batch(
             &self.shader, &self.mesh, self.indices.to_slice(gfx::TriangleList), &gfx::DrawState::new()).unwrap();
@@ -150,11 +163,15 @@ impl Renderer {
 
         self.graphics.clear(clear_data, gfx::Color, &self.frame);
         
-        let proj = cgmath::perspective(cgmath::deg(90.0f32), 640.0/480.0, 0.1, 1000.0);
+        let campos = positions.find(cam.pos).unwrap();
+        let proj = cgmath::perspective(cam.fov, 640.0/480.0, 0.1, 1000.0);
+        let view = campos.to_matrix4().invert().unwrap(); // TODO: inverse is probably not needed here?
+
+        // todo: mul outside the loop
         for &renderable in renderables.iter() {
             let pos = positions.find(renderable.pos).unwrap();
-            let model = cgmath::Matrix4::from_translation(&pos.pos);
-            self.graphics.draw(&batch, &Params { color: [0.0, 1.0, 0.0], mvp: (proj*model).into_fixed()}, &self.frame);
+            let model = pos.to_matrix4();
+            self.graphics.draw(&batch, &Params { color: [0.0, 1.0, 0.0], mvp: (proj * view * model).into_fixed()}, &self.frame);
         }
         self.graphics.end_frame();
 

@@ -194,6 +194,21 @@ mod test {
 
         b.iter(|| for comp in cstore.iter() { ::test::black_box(comp) })
     }
+    
+    #[bench]
+    fn bench_componentcreation_worstcase(b: &mut Bencher) {
+        let mut cstore = ComponentStore::new();
+        for _ in range (0u, 2047) {
+           cstore.add(TrivialComponent);
+        }
+
+        b.iter(|| {
+            let id = cstore.add(TrivialComponent);
+            ::test::black_box(id);
+            cstore.remove(id);
+        });
+    }
+
 
     /*fn bench_gc_2048_50percent(b: &mut Bencher) {
       let mut cstore = ComponentStore::new();

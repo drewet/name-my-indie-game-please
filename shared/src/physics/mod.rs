@@ -1,4 +1,4 @@
-use cgmath::{Vector, Vector3};
+use cgmath::{Vector, Vector3, Point};
 use {ComponentHandle, ComponentStore, PositionComponent};
 use TICK_LENGTH;
 
@@ -22,6 +22,6 @@ pub fn simulate_tick(physics: &mut ComponentStore<PhysicsComponent>, positions: 
     for physical in physics.iter_mut() {
         // FIXME: unwrap
         let pos = positions.find_mut(physical.position).unwrap();
-        pos.pos = pos.pos + physical.velocity.mul_s(TICK_LENGTH);
+        pos.pos = pos.pos.add_v(&physical.velocity.mul_s(TICK_LENGTH));
     }
 }
