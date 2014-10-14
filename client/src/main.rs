@@ -47,7 +47,7 @@ fn gameloop() {
     let campos = positions.add(PositionComponent { pos: Point3::new(0., 0., 10.) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
     let cam = renderer::CameraComponent::new(campos);
 
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     glfw.window_hint(glfw::ContextVersion(3, 2));
     glfw.window_hint(glfw::OpenglForwardCompat(true));
@@ -61,7 +61,7 @@ fn gameloop() {
     glfw.set_error_callback(glfw::FAIL_ON_ERRORS);
     window.set_key_polling(true);
 
-    let mut renderer = renderer::Renderer::new(&mut glfw, window);
+    let mut renderer = renderer::Renderer::new(window);
 
     loop {
         // get input from user

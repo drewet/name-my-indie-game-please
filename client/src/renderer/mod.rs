@@ -4,8 +4,8 @@ use shared::PositionComponent;
 use cgmath;
 use cgmath::FixedArray;
 use cgmath::Deg;
-use cgmath::{Matrix4, Matrix, Point, Point3, Vector3, ToMatrix4};
-use cgmath::{Transform, AffineMatrix3};
+use cgmath::{Matrix, Point3, ToMatrix4};
+use cgmath::{Transform};
 use gfx;
 use glfw;
 use gfx::{Device, DeviceHelper, ToSlice};
@@ -86,11 +86,11 @@ pub struct Renderer {
 impl Renderer {
     /// Quickly open a new window
     /// and begin rendering.
-    pub fn new(glfw: &mut glfw::Glfw, window: glfw::Window) -> Renderer {
+    pub fn new(window: glfw::Window) -> Renderer {
                 let (w, h) = window.get_framebuffer_size();
         let frame = gfx::Frame::new(w as u16, h as u16);
 
-        let mut device = gfx::GlDevice::new(|s| window.get_proc_address(s));
+        let device = gfx::GlDevice::new(|s| window.get_proc_address(s));
         let mut graphics = gfx::Graphics::new(device);
 
         let shader = graphics.device.link_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone())
