@@ -74,7 +74,6 @@ impl CameraComponent {
 }
 
 pub struct Renderer {
-    window: glfw::Window,
     frame: gfx::Frame,
     graphics: gfx::Graphics<gfx::GlDevice, gfx::GlCommandBuffer>,
 
@@ -86,8 +85,8 @@ pub struct Renderer {
 impl Renderer {
     /// Quickly open a new window
     /// and begin rendering.
-    pub fn new(window: glfw::Window) -> Renderer {
-                let (w, h) = window.get_framebuffer_size();
+    pub fn new(window: &mut glfw::Window) -> Renderer {
+        let (w, h) = window.get_framebuffer_size();
         let frame = gfx::Frame::new(w as u16, h as u16);
 
         let device = gfx::GlDevice::new(|s| window.get_proc_address(s));
@@ -141,7 +140,6 @@ impl Renderer {
         let indices = graphics.device.create_buffer_static::<u8>(index_data);
         
         Renderer {
-            window: window,
             frame: frame,
             graphics: graphics,
             shader: shader,
@@ -174,7 +172,5 @@ impl Renderer {
             self.graphics.draw(&batch, &Params { color: [0.0, 1.0, 0.0], mvp: (proj * view * model).into_fixed()}, &self.frame);
         }
         self.graphics.end_frame();
-
-        self.window.swap_buffers();
     }
 }

@@ -41,10 +41,10 @@ fn gameloop() {
     let mut positions = ComponentStore::new();
     let mut renderables = ComponentStore::new();
 
-    let pos = positions.add(PositionComponent { pos: Point3::new(0.0, 0.01, 0.0) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
+    let pos = positions.add(PositionComponent { pos: Point3::new(0.0, 0.01, 0.0) , rot: Rotation3::from_euler(cgmath::rad(3.14159/4.), cgmath::rad(3.14159/2.), cgmath::rad(3.14159/2.)) });
     let renderable = renderables.add(RenderComponent { pos: pos });
     
-    let campos = positions.add(PositionComponent { pos: Point3::new(0., 0., 10.) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
+    let campos = positions.add(PositionComponent { pos: Point3::new(0., 0., -10.) , rot: Rotation3::from_euler(cgmath::rad(3.14159), cgmath::rad(0.), cgmath::rad(0.)) });
     let cam = renderer::CameraComponent::new(campos);
 
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -53,16 +53,18 @@ fn gameloop() {
     glfw.window_hint(glfw::OpenglForwardCompat(true));
     glfw.window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
 
-    let (window, events) = glfw
+    let (mut window, events) = glfw
         .create_window(640, 480, "NMIGP", glfw::Windowed)
         .expect("Failed to create GLFW window.");
 
     window.make_current();
     glfw.set_error_callback(glfw::FAIL_ON_ERRORS);
     window.set_key_polling(true);
+    window.set_cursor_pos_polling(true);
+    window.set_cursor_mode(glfw::CursorDisabled);
 
-    let mut renderer = renderer::Renderer::new(window);
-
+    let mut renderer = renderer::Renderer::new(&mut window);
+    //let mut input_integrator = input::
     loop {
         // get input from user
         // networking
@@ -78,15 +80,21 @@ fn gameloop() {
                 glfw::KeyEvent(glfw::KeyUp, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.5, 0.0))}
                 glfw::KeyEvent(glfw::KeyDown, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, -0.5, 0.0))}
                 glfw::KeyEvent(glfw::KeyLeft, _, glfw::Press, _) => {motion = Some(Vector3::new(-0.5, 0.0, 0.0))}
-                glfw::KeyEvent(glfw::KeyRight, _, glfw::Press, _) => {motion = Some(Vector3::new(0.5, 0.0, 0.0))}
+                glfw::KeyEvent(glfw::KeyRight, _, glfw::Press, _) => {motion = Some(Vector3::new(0.5, 0.0, 0.0))},
+                glfw::CursorPosEvent(xpos, ypos) => {
+                    window.set_cursor_pos(0., 0.);
+                    println!("{} {}", xpos, ypos);
+                }
                 _ => {},
             }
         }
-        positions.find_mut(pos).map(|comp| {
+        positions.find_mut(campos).map(|comp| {
             comp.pos = comp.pos.add_v(&motion.unwrap_or(Vector3::new(0., 0., 0.)));
         });
 
-        renderer.render(&cam,&renderables, &positions);
+        renderer.render(&cam, &renderables, &positions);
+        window.swap_buffers();
+
         // unimplemented!()
     }
 }
