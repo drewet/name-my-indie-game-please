@@ -37,7 +37,7 @@ GLSL_150: b"
     out vec4 v_Color;
 
     void main() {
-        v_Color = vec4(u_Color, 1.0);
+        v_Color = vec4((a_Pos + vec3(1.0, 1.0, 1.0))/2, 1.0);
         gl_Position = u_MVP * vec4(a_Pos, 1.0);
     }
 "
@@ -148,17 +148,17 @@ impl Renderer {
     }
 
     pub fn render(&mut self, cam: &CameraComponent, renderables: &ComponentStore<RenderComponent>, positions: &ComponentStore<PositionComponent>) {
+        let mut drawstate = gfx::DrawState::new().depth(gfx::state::LessEqual, true);
 
         let batch: DebugBox = self.graphics.make_batch(
-            &self.shader, &self.mesh, self.indices.to_slice(gfx::TriangleList), &gfx::DrawState::new()).unwrap();
+            &self.shader, &self.mesh, self.indices.to_slice(gfx::TriangleList), &drawstate).unwrap();
 
         let clear_data = gfx::ClearData {
             color: [0.3, 0.3, 0.3, 1.0],
             depth: 1.0,
             stencil: 0,
         };
-
-        self.graphics.clear(clear_data, gfx::COLOR, &self.frame);
+        self.graphics.clear(clear_data, gfx::COLOR | gfx::DEPTH, &self.frame);
         
         let campos = positions.find(cam.pos).unwrap();
         let proj = cgmath::perspective(cam.fov, 640.0/480.0, 0.1, 1000.0);
@@ -168,7 +168,7 @@ impl Renderer {
         for &renderable in renderables.iter() {
             let pos = positions.find(renderable.pos).unwrap();
             let model = pos.to_matrix4();
-            self.graphics.draw(&batch, &Params { color: [0.0, 1.0, 0.0], mvp: (proj * view * model).into_fixed()}, &self.frame);
+            self.graphics.draw(&batch, &Params { color: [0.8, 1.0, 0.8], mvp: (proj * view * model).into_fixed()}, &self.frame);
         }
         self.graphics.end_frame();
     }

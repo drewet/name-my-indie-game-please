@@ -56,7 +56,7 @@ fn gameloop() {
     glfw.window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
 
     let (mut window, events) = glfw
-        .create_window(640, 480, "NMIGP", glfw::Windowed)
+        .create_window(800, 600, "NMIGP", glfw::Windowed)
         .expect("Failed to create GLFW window.");
 
     window.make_current();
