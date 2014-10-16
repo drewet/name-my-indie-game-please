@@ -4,7 +4,7 @@ use shared::PositionComponent;
 use cgmath;
 use cgmath::FixedArray;
 use cgmath::Deg;
-use cgmath::{Matrix, Point3, ToMatrix4};
+use cgmath::{Matrix, Point3, ToMatrix4, Rotation, Vector3, Vector, Point, Matrix4, Quaternion};
 use cgmath::{Transform};
 use gfx;
 use glfw;
@@ -159,12 +159,12 @@ impl Renderer {
             stencil: 0,
         };
 
-        self.graphics.clear(clear_data, gfx::Color, &self.frame);
+        self.graphics.clear(clear_data, gfx::COLOR, &self.frame);
         
         let campos = positions.find(cam.pos).unwrap();
         let proj = cgmath::perspective(cam.fov, 640.0/480.0, 0.1, 1000.0);
-        let view = campos.to_matrix4().invert().unwrap(); // TODO: inverse is probably not needed here?
-
+        
+        let view = calc_view_matrix(campos.pos, campos.rot);
         // todo: mul outside the loop
         for &renderable in renderables.iter() {
             let pos = positions.find(renderable.pos).unwrap();
@@ -173,4 +173,14 @@ impl Renderer {
         }
         self.graphics.end_frame();
     }
+}
+
+fn calc_view_matrix(pos: Point3<f32>, rot: Quaternion<f32>) -> Matrix4<f32> {
+    use cgmath::ToMatrix4;
+    let rot = rot.invert().to_matrix4();
+
+    // world-space positions are in z-up,
+    // but cameraspace needs y-up.
+    let xlate = Point3::new(-pos.x, -pos.y, -pos.z);
+    rot * Matrix4::from_translation(&xlate.to_vec())
 }

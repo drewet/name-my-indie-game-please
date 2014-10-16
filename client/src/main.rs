@@ -10,11 +10,13 @@ extern crate shared;
 
 use cgmath::{Point, Point3};
 use cgmath::Rotation3;
+use cgmath::Rotation;
 use cgmath::Vector3;
 use glfw::Context;
 use renderer::RenderComponent;
 use shared::PositionComponent;
 
+mod input;
 mod renderer;
 
 // A weird hack to get arguments to the linker.
@@ -41,10 +43,10 @@ fn gameloop() {
     let mut positions = ComponentStore::new();
     let mut renderables = ComponentStore::new();
 
-    let pos = positions.add(PositionComponent { pos: Point3::new(0.0, 0.01, 0.0) , rot: Rotation3::from_euler(cgmath::rad(3.14159/4.), cgmath::rad(3.14159/2.), cgmath::rad(3.14159/2.)) });
-    let renderable = renderables.add(RenderComponent { pos: pos });
+    let pos = positions.add(PositionComponent { pos: Point3::new(0.0, 0.01, 0.0) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
+    renderables.add(RenderComponent { pos: pos });
     
-    let campos = positions.add(PositionComponent { pos: Point3::new(0., 0., -10.) , rot: Rotation3::from_euler(cgmath::rad(3.14159), cgmath::rad(0.), cgmath::rad(0.)) });
+    let campos = positions.add(PositionComponent { pos: Point3::new(0., 0.0, 2.) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
     let cam = renderer::CameraComponent::new(campos);
 
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -64,37 +66,44 @@ fn gameloop() {
     window.set_cursor_mode(glfw::CursorDisabled);
 
     let mut renderer = renderer::Renderer::new(&mut window);
-    //let mut input_integrator = input::
-    loop {
-        // get input from user
+    let mut input_integrator = input::MouseInputIntegrator::new();
+
+    while !window.should_close() {
+        let mut motion = None;
+
+        glfw.poll_events();
+
+        for (_, event) in glfw::flush_messages(&events) {
+            match event {
+                glfw::KeyEvent(glfw::KeyEscape, _, glfw::Press, _) => { window.set_should_close(true) }
+                glfw::KeyEvent(glfw::KeyUp, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.5, 0.0))}
+                glfw::KeyEvent(glfw::KeyDown, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, -0.5, 0.0))}
+                glfw::KeyEvent(glfw::KeyLeft, _, glfw::Press, _) => {motion = Some(Vector3::new(-0.5, 0.0, 0.0))}
+                glfw::KeyEvent(glfw::KeyRight, _, glfw::Press, _) => {motion = Some(Vector3::new(0.5, 0.0, 0.0))},
+                glfw::KeyEvent(glfw::KeyPageUp, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.0, 0.5))}
+                glfw::KeyEvent(glfw::KeyPageDown, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.0, -0.5))}
+                glfw::CursorPosEvent(xpos, ypos) => {
+                    window.set_cursor_pos(0., 0.);
+                    input_integrator.input(xpos as f32, ypos as f32);
+                }
+                _ => {},
+            }
+        }
+
         // networking
         //     get updates from server, update gamestate
         //     part of that is GC for component stores
         //     send input to server (no prediction yet, singleplayer)
         // render, sound, etc.
-        glfw.poll_events();
-        let mut motion = None;
-        for (_, event) in glfw::flush_messages(&events) {
-            match event {
-                glfw::KeyEvent(glfw::KeyEscape, _, glfw::Press, _) => {return;}
-                glfw::KeyEvent(glfw::KeyUp, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.5, 0.0))}
-                glfw::KeyEvent(glfw::KeyDown, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, -0.5, 0.0))}
-                glfw::KeyEvent(glfw::KeyLeft, _, glfw::Press, _) => {motion = Some(Vector3::new(-0.5, 0.0, 0.0))}
-                glfw::KeyEvent(glfw::KeyRight, _, glfw::Press, _) => {motion = Some(Vector3::new(0.5, 0.0, 0.0))},
-                glfw::CursorPosEvent(xpos, ypos) => {
-                    window.set_cursor_pos(0., 0.);
-                    println!("{} {}", xpos, ypos);
-                }
-                _ => {},
-            }
-        }
+        //
+        let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,));
+
         positions.find_mut(campos).map(|comp| {
-            comp.pos = comp.pos.add_v(&motion.unwrap_or(Vector3::new(0., 0., 0.)));
+            comp.rot = input_integrator.angles;
+            comp.pos = comp.pos.add_v(&(comp.rot.rotate_vector(&motion)));
         });
 
         renderer.render(&cam, &renderables, &positions);
         window.swap_buffers();
-
-        // unimplemented!()
     }
 }
