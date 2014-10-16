@@ -1,6 +1,6 @@
 use cgmath;
-use cgmath::{Quaternion, Rotation, Rotation3, Vector, Vector2, Vector3};
-use cgmath::{deg, rad};
+use cgmath::Vector2;
+use cgmath::deg;
 
 pub struct MouseInputIntegrator {
     pub pitch: cgmath::Deg<f32>,

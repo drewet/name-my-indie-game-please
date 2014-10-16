@@ -4,12 +4,11 @@ use shared::PositionComponent;
 use cgmath;
 use cgmath::FixedArray;
 use cgmath::Deg;
-use cgmath::{Matrix, Point3, ToMatrix4, Rotation, Vector3, Vector, Point, Matrix4, Quaternion};
+use cgmath::{Matrix, Point3, ToMatrix4, Rotation, Vector, Point, Matrix4, Quaternion};
 use cgmath::{Transform};
 use gfx;
 use glfw;
 use gfx::{Device, DeviceHelper, ToSlice};
-use glfw::Context;
 
 #[shader_param(DebugBox)]
 struct Params {
