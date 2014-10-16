@@ -67,7 +67,7 @@ impl CameraComponent {
     pub fn new(pos: ComponentHandle<PositionComponent>) -> CameraComponent {
         CameraComponent {
             pos: pos,
-            fov: cgmath::deg(90.)
+            fov: cgmath::deg(60.)
         }
     }
 }

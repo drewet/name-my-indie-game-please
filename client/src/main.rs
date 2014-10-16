@@ -98,7 +98,7 @@ fn gameloop() {
         //
         let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,));
 
-        positions.find_mut(pos).map(|comp| {
+        positions.find_mut(campos).map(|comp| {
             use cgmath::{rad, ToRad};
             comp.rot = cgmath::Rotation3::from_euler(rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad());
             comp.pos = comp.pos.add_v(&(comp.rot.rotate_vector(&motion)));
