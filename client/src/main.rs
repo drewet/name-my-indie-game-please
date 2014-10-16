@@ -94,11 +94,11 @@ fn gameloop() {
         //     get updates from server, update gamestate
         //     part of that is GC for component stores
         //     send input to server (no prediction yet, singleplayer)
-        // render, sound, etc.
+        // sound, etc.
         //
         let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,));
 
-        positions.find_mut(campos).map(|comp| {
+        positions.find_mut(pos).map(|comp| {
             use cgmath::{deg, rad, ToRad};
             comp.rot = cgmath::Rotation3::from_euler(rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad());
             comp.pos = comp.pos.add_v(&(comp.rot.rotate_vector(&motion)));
