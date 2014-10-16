@@ -178,9 +178,15 @@ impl Renderer {
 fn calc_view_matrix(pos: Point3<f32>, rot: Quaternion<f32>) -> Matrix4<f32> {
     use cgmath::ToMatrix4;
     let rot = rot.invert().to_matrix4();
+    
+    let xlate = pos.to_vec().mul_s(-1.0);
+    // z-up to y-up
+    let coordswap = Matrix4::new(
+        1., 0., 0., 0.,
+        0., 0., 1., 0.,
+        0., 1., 0., 0.,
+        0., 0., 0., 1.,
+    );
 
-    // world-space positions are in z-up,
-    // but cameraspace needs y-up.
-    let xlate = Point3::new(-pos.x, -pos.y, -pos.z);
-    rot * Matrix4::from_translation(&xlate.to_vec())
+    coordswap * rot * Matrix4::from_translation(&xlate)
 }

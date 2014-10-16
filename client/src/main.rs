@@ -46,7 +46,7 @@ fn gameloop() {
     let pos = positions.add(PositionComponent { pos: Point3::new(0.0, 0.01, 0.0) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
     renderables.add(RenderComponent { pos: pos });
     
-    let campos = positions.add(PositionComponent { pos: Point3::new(0., 0.0, 2.) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
+    let campos = positions.add(PositionComponent { pos: Point3::new(0., 2.0, 0.) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
     let cam = renderer::CameraComponent::new(campos);
 
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -99,7 +99,8 @@ fn gameloop() {
         let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,));
 
         positions.find_mut(campos).map(|comp| {
-            comp.rot = input_integrator.angles;
+            use cgmath::{deg, rad, ToRad};
+            comp.rot = cgmath::Rotation3::from_euler(rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad());
             comp.pos = comp.pos.add_v(&(comp.rot.rotate_vector(&motion)));
         });
 
