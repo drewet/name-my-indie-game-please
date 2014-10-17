@@ -12,6 +12,7 @@ use cgmath::{Point, Point3};
 use cgmath::Rotation3;
 use cgmath::Rotation;
 use cgmath::Vector3;
+use cgmath::ToRad;
 use glfw::Context;
 use renderer::RenderComponent;
 use shared::PositionComponent;
@@ -42,12 +43,15 @@ fn gameloop() {
 
     let mut positions = ComponentStore::new();
     let mut renderables = ComponentStore::new();
+    let mut physicals = ComponentStore::new();
 
     let pos = positions.add(PositionComponent { pos: Point3::new(0.0, 0.01, 0.0) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
     renderables.add(RenderComponent { pos: pos });
     
     let campos = positions.add(PositionComponent { pos: Point3::new(0., 2.0, 0.) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
     let cam = renderer::CameraComponent::new(campos);
+    let mut controllable = shared::playercmd::ControllableComponent::new(campos);
+    let camphys = physicals.add(shared::physics::PhysicsComponent::new(campos));
 
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
@@ -68,9 +72,8 @@ fn gameloop() {
     let mut renderer = renderer::Renderer::new(&mut window);
     let mut input_integrator = input::MouseInputIntegrator::new();
 
+    let mut motion = None;
     while !window.should_close() {
-        let mut motion = None;
-
         glfw.poll_events();
 
         for (_, event) in glfw::flush_messages(&events) {
@@ -82,6 +85,7 @@ fn gameloop() {
                 glfw::KeyEvent(glfw::KeyRight, _, glfw::Press, _) => {motion = Some(Vector3::new(0.5, 0.0, 0.0))},
                 glfw::KeyEvent(glfw::KeyPageUp, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.0, 0.5))}
                 glfw::KeyEvent(glfw::KeyPageDown, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.0, -0.5))}
+                glfw::KeyEvent(_, _, glfw::Release, _) => {motion = None}
                 glfw::CursorPosEvent(xpos, ypos) => {
                     window.set_cursor_pos(0., 0.);
                     input_integrator.input(xpos as f32, ypos as f32);
@@ -89,7 +93,8 @@ fn gameloop() {
                 _ => {},
             }
         }
-
+    
+        shared::physics::simulate_tick(&mut physicals, &mut positions);
         // networking
         //     get updates from server, update gamestate
         //     part of that is GC for component stores
@@ -98,11 +103,11 @@ fn gameloop() {
         //
         let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,));
 
-        positions.find_mut(campos).map(|comp| {
-            use cgmath::{rad, ToRad};
-            comp.rot = cgmath::Rotation3::from_euler(rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad());
-            comp.pos = comp.pos.add_v(&(comp.rot.rotate_vector(&motion)));
-        });
+        let cmd = shared::playercmd::PlayerCommand {
+            angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
+            movement: motion
+        };
+        shared::playercmd::run_command(cmd, &mut controllable, &mut positions);
 
         renderer.render(&cam, &renderables, &positions);
         window.swap_buffers();

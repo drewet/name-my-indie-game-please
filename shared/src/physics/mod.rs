@@ -5,13 +5,13 @@ use TICK_LENGTH;
 pub mod collision;
 
 pub struct PhysicsComponent {
-    velocity: Vector3<f32>,
+    pub velocity: Vector3<f32>,
     position: ComponentHandle<PositionComponent>
 }
 impl PhysicsComponent {
     pub fn new(position: ComponentHandle<PositionComponent>) -> PhysicsComponent {
         PhysicsComponent {
-            velocity: Vector3::new(0., -0.1, 0.),
+            velocity: Vector3::new(0., 0., 0.),
             position: position
         }
     }
