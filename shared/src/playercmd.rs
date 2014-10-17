@@ -1,19 +1,19 @@
-use component::{ComponentHandle, ComponentStore, PositionComponent};
+use component::{ComponentHandle, ComponentStore, EntityComponent, EntityHandle};
 use physics::PhysicsComponent;
 use cgmath;
 use cgmath::{Point, Vector, Vector3, Quaternion};
 
 pub struct ControllableComponent {
-    position: ComponentHandle<PositionComponent>,
+    entity: EntityHandle
     
     //pub topspeed: f32,
 
     //pub lastcmd: PlayerCommand
 }
 impl ControllableComponent {
-    pub fn new(position: ComponentHandle<PositionComponent>) -> ControllableComponent {
+    pub fn new(entity: EntityHandle) -> ControllableComponent {
         ControllableComponent {
-            position: position
+            entity: entity
         }
     }
 }
@@ -29,14 +29,14 @@ pub struct PlayerCommand {
 /// Runs a player's command for a single game tick.
 pub fn run_command(cmd: PlayerCommand,
                    controllable: &mut ControllableComponent,
-                   positions: &mut ComponentStore<PositionComponent>) {
+                   entities: &mut ComponentStore<EntityComponent>) {
     use cgmath::Rotation;
 
-    let pos = positions.find_mut(controllable.position).unwrap();
+    let ent = entities.find_mut(controllable.entity).unwrap();
 
     // TODO: validate angles and movoment
-    pos.rot = cmd.angles;
+    ent.rot = cmd.angles;
     // TODO: collision check. there should be a function in physics::
     // for trying to move by a vector, with collisions.
-    pos.pos = pos.pos.add_v(&cmd.angles.rotate_vector(&cmd.movement));
+    ent.pos = ent.pos.add_v(&cmd.angles.rotate_vector(&cmd.movement));
 }

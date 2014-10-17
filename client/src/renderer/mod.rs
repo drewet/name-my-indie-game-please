@@ -1,6 +1,8 @@
-use shared::component::ComponentStore;
-use shared::component::ComponentHandle;
-use shared::PositionComponent;
+use shared::component::{ComponentStore,
+    ComponentHandle,
+    EntityComponent,
+    EntityHandle
+};
 use cgmath;
 use cgmath::FixedArray;
 use cgmath::Deg;
@@ -57,16 +59,16 @@ GLSL_150: b"
 };
 
 pub struct RenderComponent {
-    pub pos: ComponentHandle<PositionComponent>
+    pub entity: EntityHandle
 }
 pub struct CameraComponent {
-    pos: ComponentHandle<PositionComponent>,
+    entity: EntityHandle,
     fov: Deg<f32>
 }
 impl CameraComponent {
-    pub fn new(pos: ComponentHandle<PositionComponent>) -> CameraComponent {
+    pub fn new(entity: EntityHandle) -> CameraComponent {
         CameraComponent {
-            pos: pos,
+            entity: entity,
             fov: cgmath::deg(60.)
         }
     }
@@ -147,7 +149,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, cam: &CameraComponent, renderables: &ComponentStore<RenderComponent>, positions: &ComponentStore<PositionComponent>) {
+    pub fn render(&mut self, cam: &CameraComponent, renderables: &ComponentStore<RenderComponent>, entities: &ComponentStore<EntityComponent>) {
         let mut drawstate = gfx::DrawState::new().depth(gfx::state::LessEqual, true);
 
         let batch: DebugBox = self.graphics.make_batch(
@@ -160,14 +162,13 @@ impl Renderer {
         };
         self.graphics.clear(clear_data, gfx::COLOR | gfx::DEPTH, &self.frame);
         
-        let campos = positions.find(cam.pos).unwrap();
+        let cament = entities.find(cam.entity).unwrap();
         let proj = cgmath::perspective(cam.fov, 640.0/480.0, 0.1, 1000.0);
         
-        let view = calc_view_matrix(campos.pos, campos.rot);
-        // todo: mul outside the loop
+        let view = calc_view_matrix(cament.pos, cament.rot);
         for &renderable in renderables.iter() {
-            let pos = positions.find(renderable.pos).unwrap();
-            let model = pos.to_matrix4();
+            let ent = entities.find(renderable.entity).unwrap();
+            let model = ent.make_matrix();
             self.graphics.draw(&batch, &Params { color: [0.8, 1.0, 0.8], mvp: (proj * view * model).into_fixed()}, &self.frame);
         }
         self.graphics.end_frame();

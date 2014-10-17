@@ -15,7 +15,7 @@ use cgmath::Vector3;
 use cgmath::ToRad;
 use glfw::Context;
 use renderer::RenderComponent;
-use shared::PositionComponent;
+use shared::EntityComponent;
 
 mod input;
 mod renderer;
@@ -41,17 +41,17 @@ fn main() {
 fn gameloop() {
     use shared::component::ComponentStore;
 
-    let mut positions = ComponentStore::new();
+    let mut entities = ComponentStore::new();
     let mut renderables = ComponentStore::new();
     let mut physicals = ComponentStore::new();
 
-    let pos = positions.add(PositionComponent { pos: Point3::new(0.0, 0.01, 0.0) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
-    renderables.add(RenderComponent { pos: pos });
+    let ent = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
+    renderables.add(RenderComponent { entity: ent });
     
-    let campos = positions.add(PositionComponent { pos: Point3::new(0., 2.0, 0.) , rot: Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)) });
-    let cam = renderer::CameraComponent::new(campos);
-    let mut controllable = shared::playercmd::ControllableComponent::new(campos);
-    let camphys = physicals.add(shared::physics::PhysicsComponent::new(campos));
+    let cament = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
+    let cam = renderer::CameraComponent::new(cament);
+    let mut controllable = shared::playercmd::ControllableComponent::new(cament);
+    let camphys = physicals.add(shared::physics::PhysicsComponent::new(cament));
 
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
@@ -94,7 +94,7 @@ fn gameloop() {
             }
         }
     
-        shared::physics::simulate_tick(&mut physicals, &mut positions);
+        shared::physics::simulate_tick(&mut physicals, &mut entities);
         // networking
         //     get updates from server, update gamestate
         //     part of that is GC for component stores
@@ -107,9 +107,9 @@ fn gameloop() {
             angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
             movement: motion
         };
-        shared::playercmd::run_command(cmd, &mut controllable, &mut positions);
+        shared::playercmd::run_command(cmd, &mut controllable, &mut entities);
 
-        renderer.render(&cam, &renderables, &positions);
+        renderer.render(&cam, &renderables, &entities);
         window.swap_buffers();
     }
 }

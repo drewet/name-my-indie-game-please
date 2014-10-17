@@ -1,5 +1,5 @@
 use std;
-pub use self::components::PositionComponent;
+pub use self::components::{EntityComponent, EntityHandle};
 pub mod components;
 
 #[deriving(Show)]
@@ -49,11 +49,9 @@ impl<Component> ComponentStore<Component> {
         self.components.iter_mut().filter_map(|&ComponentBookkeeper{component: ref mut comp, ..}| comp.as_mut())
     }
 
-    /// Add a component
+    /// Add a component.
     pub fn add(&mut self, component: Component) -> ComponentHandle<Component> {
-        let result = self.components.iter().position(|bookkeeper| bookkeeper.component.is_none());
-        let pos = result.expect("Out of room in ComponentStore!");
-        
+        let pos = self.find_free_bookkeeper();
         let comp = self.components.get_mut(pos);
 
         // Note: we do NOT bump the serial here.
@@ -62,9 +60,27 @@ impl<Component> ComponentStore<Component> {
         // without a component inside it.
 
         comp.component = Some(component);
-
         ComponentHandle { id: pos as u16, serial: comp.serial }
     }
+    
+    /// Adds a component, constructing it by giving it a handle
+    /// to itself.
+    pub fn add_with_handle(&mut self,
+                           constructor: |ComponentHandle<Component>| -> Component) -> ComponentHandle<Component> {
+        // FIXME: too much duplication from .add
+        let pos = self.find_free_bookkeeper();
+        let comp = self.components.get_mut(pos);
+
+        // Note: we do NOT bump the serial here.
+        // It is only done on component destruction
+        // This is because it's impossible to get a handle that points to a bookkeeper
+        // without a component inside it.
+
+        let handle = ComponentHandle { id: pos as u16, serial: comp.serial };
+        comp.component = Some(constructor(handle));
+        handle
+    }
+
 
     /// Removes a component by handle.
     /// Returns whether the component was found.
@@ -98,6 +114,9 @@ impl<Component> ComponentStore<Component> {
         } else {
             None
         }
+    }
+    fn find_free_bookkeeper(&self) -> uint {
+        self.components.iter().position(|bookkeeper| bookkeeper.component.is_none()).expect("Out of room in ComponentStore!")
     }
 }
 #[cfg(test)]

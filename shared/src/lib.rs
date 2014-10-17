@@ -20,7 +20,7 @@ extern crate test;
 pub use component::{
     ComponentStore, ComponentHandle,
 
-    PositionComponent
+    EntityComponent, EntityHandle
 };
 
 pub mod component;
