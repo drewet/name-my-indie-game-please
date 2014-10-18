@@ -7,11 +7,13 @@ extern crate gfx_macros;
 extern crate glfw;
 extern crate native;
 extern crate shared;
+extern crate time;
 
 use cgmath::{Point, Point3};
 use cgmath::Rotation3;
 use cgmath::Rotation;
 use cgmath::Vector3;
+use cgmath::Vector;
 use cgmath::ToRad;
 use glfw::Context;
 use renderer::RenderComponent;
@@ -74,6 +76,8 @@ fn gameloop() {
 
     let mut motion = None;
     while !window.should_close() {
+        let framestart_ns = time::precise_time_ns();
+
         glfw.poll_events();
 
         for (_, event) in glfw::flush_messages(&events) {
@@ -101,7 +105,7 @@ fn gameloop() {
         //     send input to server (no prediction yet, singleplayer)
         // sound, etc.
         //
-        let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,));
+        let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,)).mul_s(0.1);
 
         let cmd = shared::playercmd::PlayerCommand {
             angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
@@ -111,5 +115,13 @@ fn gameloop() {
 
         renderer.render(&cam, &renderables, &entities);
         window.swap_buffers();
+
+        let frameend_ns = time::precise_time_ns();
+        let frametime_ns = frameend_ns - framestart_ns;
+        let fps = 1000 * 1000 * 1000 / frametime_ns;
+        window.set_title(format!("{}FPS, frametime: {}ns", fps, frametime_ns).as_slice());
+        if fps < 200 {
+            println!("SLOW FRAME! {}FPS, frametime: {}ns", fps, frametime_ns);
+        }
     }
 }
