@@ -1,13 +1,8 @@
 notifications:
   irc: "irc.quakenet.org#nmigp"
-env:
-  global:
-    - secure: i2X3heU3yM3I/sF0qqm34MF/djvt8+O9bkuI4w8NPI5YIrPZpXqluxs0huOp/6R3B6s5ymkx2h9b709ectrQceHXzlPd0czLN5knO/wcxNxal6tUbTK6CUWSYM3MRrF91zfsZ95PfyRZSdqBCyOgvHR47rhjxxZ+vTiF0u3VXno=
 language: rust
 script:
         - cd shared
         - cargo build 
         - cargo test
         - cargo doc
-after_script:
-  - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
