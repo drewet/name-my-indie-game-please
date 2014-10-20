@@ -113,7 +113,7 @@ fn gameloop() {
         };
         shared::playercmd::run_command(cmd, &mut controllable, &mut entities);
 
-        renderer.render(&cam, &renderables, &entities);
+        renderer.render(&cam, &mut renderables, &entities);
         window.swap_buffers();
 
         let frameend_ns = time::precise_time_ns();

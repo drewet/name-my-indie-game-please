@@ -1,3 +1,4 @@
+#![feature(default_type_params)]
 //! This crate contains code that is shared between the client and server.
 //! It's probably well-named.
 //!
@@ -14,6 +15,8 @@
 //! Networking, because client and server need to talk to each other.
 //! and other things?
 
+extern crate anymap;
+extern crate serialize;
 extern crate cgmath;
 extern crate test;
 
@@ -24,6 +27,7 @@ pub use component::{
 };
 
 pub mod component;
+pub mod network;
 pub mod physics;
 pub mod playercmd;
 

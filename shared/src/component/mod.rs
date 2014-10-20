@@ -1,4 +1,6 @@
 use std;
+use std::hash::Hash;
+
 pub use self::components::{EntityComponent, EntityHandle};
 pub mod components;
 
@@ -13,16 +15,39 @@ impl<Component> PartialEq for ComponentHandle<Component> {
         self.id == other.id && self.serial == other.serial
     }
 }
+impl<Component> Eq for ComponentHandle<Component> {}
+impl<Component> Hash<std::hash::sip::SipState> for ComponentHandle<Component> {
+    fn hash(&self, state: &mut std::hash::sip::SipState) {
+        self.id.hash(state);
+        self.serial.hash(state);
+    }
+}
 
-/// This has to be public for iterator reasons.
-/// Should fix later.
-pub struct ComponentBookkeeper<Component> {
+struct ComponentBookkeeper<Component> {
     serial: u32,
     component: Option<Component>
 }
 impl<Component> ComponentBookkeeper<Component> {
     pub fn bump_serial(&mut self) {
         self.serial = self.serial.checked_add(&1).expect("Serial no. overflow!");
+    }
+}
+
+pub struct Components<'a, Component: 'a> {
+    actual_iterator: std::iter::FilterMap<'a,(uint,&'a ComponentBookkeeper<Component>),(ComponentHandle<Component>, &'a Component),std::iter::Enumerate<std::slice::Items<'a,ComponentBookkeeper<Component>>>>
+}
+impl<'a, Component> Iterator<(ComponentHandle<Component>, &'a Component)> for Components<'a, Component> {
+    fn next(&mut self) -> Option<(ComponentHandle<Component>, &'a Component)> {
+        self.actual_iterator.next()
+    }
+}
+
+pub struct MutComponents<'a, Component: 'a> {
+    actual_iterator: std::iter::FilterMap<'a,(uint,&'a mut ComponentBookkeeper<Component>),(ComponentHandle<Component>, &'a mut Component),std::iter::Enumerate<std::slice::MutItems<'a,ComponentBookkeeper<Component>>>>
+}
+impl<'a, Component> Iterator<(ComponentHandle<Component>, &'a mut Component)> for MutComponents<'a, Component> {
+    fn next(&mut self) -> Option<(ComponentHandle<Component>, &'a mut Component)> {
+        self.actual_iterator.next()
     }
 }
 
@@ -41,12 +66,30 @@ impl<Component> ComponentStore<Component> {
     }
 
     /// Iterate over all components.
-    pub fn iter(&self) -> std::iter::FilterMap<&ComponentBookkeeper<Component>, &Component, std::slice::Items<ComponentBookkeeper<Component>>> {
-        self.components.iter().filter_map(|&ComponentBookkeeper{component: ref comp, ..}| comp.as_ref())
+    pub fn iter(&self) -> Components<Component> {
+        Components {
+            actual_iterator:
+                self.components.iter().enumerate()
+                .filter_map(|(pos, &ComponentBookkeeper{component: ref comp, serial: serial})|
+                            match *comp {
+                                Some(ref c) => Some((ComponentHandle { id: pos as u16, serial: serial }, c)),
+                                None => None
+                            }
+                )
+        }
     }
     /// Iterate over all components, mutably.
-    pub fn iter_mut(&mut self) -> std::iter::FilterMap<&mut ComponentBookkeeper<Component>, &mut Component, std::slice::MutItems<ComponentBookkeeper<Component>>> {
-        self.components.iter_mut().filter_map(|&ComponentBookkeeper{component: ref mut comp, ..}| comp.as_mut())
+    pub fn iter_mut(&mut self) -> MutComponents<Component> {
+        MutComponents {
+            actual_iterator:
+                self.components.iter_mut().enumerate()
+                .filter_map(|(pos, &ComponentBookkeeper{component: ref mut comp, serial: serial})|
+                            match *comp {
+                                Some(ref mut c) => Some((ComponentHandle { id: pos as u16, serial: serial }, c)),
+                                None => None
+                            }
+                )
+        }
     }
 
     /// Add a component.

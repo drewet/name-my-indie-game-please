@@ -149,7 +149,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, cam: &CameraComponent, renderables: &ComponentStore<RenderComponent>, entities: &ComponentStore<EntityComponent>) {
+    pub fn render(&mut self, cam: &CameraComponent, renderables: &mut ComponentStore<RenderComponent>, entities: &ComponentStore<EntityComponent>) {
         let mut drawstate = gfx::DrawState::new().depth(gfx::state::LessEqual, true);
 
         let batch: DebugBox = self.graphics.make_batch(
@@ -166,10 +166,19 @@ impl Renderer {
         let proj = cgmath::perspective(cam.fov, 640.0/480.0, 0.1, 1000.0);
         
         let view = calc_view_matrix(cament.pos, cament.rot);
-        for &renderable in renderables.iter() {
-            let ent = entities.find(renderable.entity).unwrap();
-            let model = ent.make_matrix();
-            self.graphics.draw(&batch, &Params { color: [0.8, 1.0, 0.8], mvp: (proj * view * model).into_fixed()}, &self.frame);
+        let mut dead = Vec::new();
+        for (handle, &renderable) in renderables.iter() {
+            let ent = entities.find(renderable.entity);
+            match ent {
+                Some(ent) => {
+                    let model = ent.make_matrix();
+                    self.graphics.draw(&batch, &Params { color: [0.8, 1.0, 0.8], mvp: (proj * view * model).into_fixed()}, &self.frame);
+                },
+                None => dead.push(handle)
+            }
+        }
+        for handle in dead.into_iter() {
+            renderables.remove(handle);
         }
         self.graphics.end_frame();
     }

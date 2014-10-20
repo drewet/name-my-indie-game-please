@@ -1,5 +1,6 @@
 use cgmath;
 use cgmath::Plane;
+use cgmath::Vector3;
 
 enum Tree<LeafType> {
     Subtree(INode),
@@ -28,3 +29,6 @@ impl<LeafType> Tree<LeafType> {
             Leaf(leaf) => Leaf(f(leaf))
         }
     }
+    
+    fn find(&self, point: Point3<f32>) -> LeafType { 
+
