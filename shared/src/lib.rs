@@ -1,3 +1,4 @@
+#![forbid(unsafe_block)]
 #![feature(default_type_params)]
 //! This crate contains code that is shared between the client and server.
 //! It's probably well-named.
