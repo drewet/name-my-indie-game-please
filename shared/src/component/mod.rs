@@ -1,5 +1,7 @@
 use std;
 use std::hash::Hash;
+use serialize::Encodable;
+use network::protocol::{NetEncoder, NetEncodeError};
 
 pub use self::components::{EntityComponent, EntityHandle};
 pub mod components;
@@ -20,6 +22,11 @@ impl<Component> Hash<std::hash::sip::SipState> for ComponentHandle<Component> {
     fn hash(&self, state: &mut std::hash::sip::SipState) {
         self.id.hash(state);
         self.serial.hash(state);
+    }
+}
+impl<Component> Encodable<NetEncoder, NetEncodeError> for ComponentHandle<Component> {
+    fn encode(&self, s: &mut NetEncoder) -> Result<(), NetEncodeError> {
+        s.emit_handle(*self)
     }
 }
 
