@@ -1,16 +1,13 @@
+use cgmath;
+use cgmath::{Deg, FixedArray, Matrix, Matrix4, Point, Point3, Quaternion, Rotation, ToMatrix4, Transform, Vector };
+use glfw;
+use gfx;
+use gfx::{Device, DeviceHelper, ToSlice};
 use shared::component::{ComponentStore,
     ComponentHandle,
     EntityComponent,
     EntityHandle
 };
-use cgmath;
-use cgmath::FixedArray;
-use cgmath::Deg;
-use cgmath::{Matrix, Point3, ToMatrix4, Rotation, Vector, Point, Matrix4, Quaternion};
-use cgmath::{Transform};
-use gfx;
-use glfw;
-use gfx::{Device, DeviceHelper, ToSlice};
 
 #[shader_param(DebugBox)]
 struct Params {

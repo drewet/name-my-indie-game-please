@@ -1,9 +1,6 @@
 use cgmath;
-use cgmath::ToMatrix4;
-use cgmath::Matrix4;
-use cgmath::Point;
-use component::ComponentHandle;
-use component::ComponentStore;
+use cgmath::{Matrix4, Point, Point3, ToMatrix4, Quaternion};
+use component::{ComponentHandle, ComponentStore};
 
 pub type EntityHandle = ComponentHandle<EntityComponent>;
 
@@ -11,8 +8,8 @@ pub type EntityHandle = ComponentHandle<EntityComponent>;
 pub struct EntityComponent {
     handle: EntityHandle,
 
-    pub pos: cgmath::Point3<f32>,
-    pub rot: cgmath::Quaternion<f32>
+    pub pos: Point3<f32>,
+    pub rot: Quaternion<f32>
 }
 
 impl EntityComponent {
@@ -22,8 +19,8 @@ impl EntityComponent {
     
     /// Constructs an EntityComponent inside a
     pub fn new(ents: &mut ComponentStore<EntityComponent>,
-              pos: cgmath::Point3<f32>,
-              rot: cgmath::Quaternion<f32>) -> EntityHandle {
+              pos: Point3<f32>,
+              rot: Quaternion<f32>) -> EntityHandle {
         ents.add_with_handle(|handle| EntityComponent {
             handle: handle,
             pos: pos,

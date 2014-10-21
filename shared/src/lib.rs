@@ -17,13 +17,12 @@
 //! and other things?
 
 extern crate anymap;
-extern crate serialize;
 extern crate cgmath;
+extern crate serialize;
 extern crate test;
 
 pub use component::{
     ComponentStore, ComponentHandle,
-
     EntityComponent, EntityHandle
 };
 

@@ -1,10 +1,8 @@
-use cgmath;
-use cgmath::Vector2;
-use cgmath::deg;
+use cgmath::{deg, Deg, Vector2};
 
 pub struct MouseInputIntegrator {
-    pub pitch: cgmath::Deg<f32>,
-    pub yaw: cgmath::Deg<f32>,
+    pub pitch: Deg<f32>,
+    pub yaw: Deg<f32>,
     pub sensitivity: Vector2<f32>,
 }
 
