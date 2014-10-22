@@ -6,6 +6,7 @@ extern crate gfx;
 extern crate gfx_macros;
 extern crate glfw;
 extern crate native;
+extern crate serialize;
 extern crate shared;
 extern crate time;
 
@@ -18,6 +19,7 @@ use cgmath::ToRad;
 use glfw::Context;
 use renderer::RenderComponent;
 use shared::EntityComponent;
+use std::io::net::udp::UdpSocket;
 
 mod input;
 mod renderer;
@@ -40,20 +42,44 @@ fn main() {
     gameloop()
 }
 
+fn find_free_port(start_port: u16) -> UdpSocket {
+    use std::io::net::ip::{Ipv4Addr, SocketAddr};
+
+    for port in range(start_port, std::u16::MAX) {
+        let bindaddr = SocketAddr { ip: Ipv4Addr(127, 0, 0, 1), port: port };
+        
+        match UdpSocket::bind(bindaddr) {
+            Ok(s) => return s,
+            Err(e) => {
+                println!("{}", e.kind);
+                fail!("couldn't bind socket: {}", e)
+            }
+        }
+    } 
+    unreachable!()
+}
 fn gameloop() {
     use shared::component::ComponentStore;
 
+    use std::io::net::ip::{Ipv4Addr, SocketAddr};
+    use std::io::net::udp::UdpSocket;
+
+    let serveraddr = SocketAddr { ip: Ipv4Addr(127, 0, 0, 1), port: 18295 };
+
+    let socket = find_free_port(18294);
+    let mut conn = socket.connect(serveraddr);
+    
     let mut entities = ComponentStore::new();
     let mut renderables = ComponentStore::new();
-    let mut physicals = ComponentStore::new();
+    //let mut physicals = ComponentStore::new();
 
     let ent = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
     renderables.add(RenderComponent { entity: ent });
     
-    let cament = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
-    let cam = renderer::CameraComponent::new(cament);
-    let mut controllable = shared::playercmd::ControllableComponent::new(cament);
-    let camphys = physicals.add(shared::physics::PhysicsComponent::new(cament));
+    //let cament = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
+    let mut cam = None; //renderer::CameraComponent::new(cament);
+   // let mut controllable = shared::playercmd::ControllableComponent::new(cament);
+    //let camphys = physicals.add(shared::physics::PhysicsComponent::new(cament));
 
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
@@ -75,9 +101,30 @@ fn gameloop() {
     let mut input_integrator = input::MouseInputIntegrator::new();
 
     let mut motion = None;
+    let mut hdict = std::collections::HashMap::new();
     while !window.should_close() {
+        use serialize::json;
+        use shared::network::protocol::apply_full_update;
+        
         let framestart_ns = time::precise_time_ns();
+        
+        let mut buf = [0u8, ..4000];
 
+        match conn.read(&mut buf) {
+            Ok(len) => {
+                let buf = buf.slice_to(len);
+                let mut rdr = std::io::MemReader::new(buf.iter().map(|&e| e).collect());
+                let json = json::from_reader(&mut rdr).unwrap();
+                let mut dec = json::Decoder::new(json);
+                apply_full_update(&mut dec, &mut hdict, &mut entities, |e, h| EntityComponent::from_nohandle(&e, h), |e, store| {
+                    println!("Adding new entity.");
+                    let handle = store.add_with_handle(|handle| EntityComponent::from_nohandle(&e, handle));
+                    cam = Some(renderer::CameraComponent::new(handle));
+                    handle
+                });
+            },
+            Err(_) => ()
+        };
         glfw.poll_events();
 
         for (_, event) in glfw::flush_messages(&events) {
@@ -98,7 +145,7 @@ fn gameloop() {
             }
         }
     
-        shared::physics::simulate_tick(&mut physicals, &mut entities);
+        // shared::physics::simulate_tick(&mut physicals, &mut entities);
         // networking
         //     get updates from server, update gamestate
         //     part of that is GC for component stores
@@ -111,9 +158,14 @@ fn gameloop() {
             angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
             movement: motion
         };
-        shared::playercmd::run_command(cmd, &mut controllable, &mut entities);
+        conn.write_str(json::encode(&cmd).as_slice()).unwrap();
+        //shared::playercmd::run_command(cmd, &mut controllable, &mut entities);
 
-        renderer.render(&cam, &mut renderables, &entities);
+        match cam {
+            Some(ref cam) => renderer.render(cam, &mut renderables, &entities),
+            None => ()
+        };
+
         window.swap_buffers();
 
         let frameend_ns = time::precise_time_ns();

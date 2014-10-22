@@ -1,7 +1,6 @@
 use std;
 use std::hash::Hash;
-use serialize::{Decodable, Encodable};
-use network::protocol::{NetDecoder, NetEncoder, NetProtocolError};
+use serialize::{Decodable, Encodable, Decoder, Encoder};
 
 pub use self::components::{EntityComponent, EntityHandle};
 pub mod components;
@@ -11,9 +10,17 @@ pub struct ComponentHandle<Component> {
     id: u16,
     serial: u32
 }
+#[deriving(Encodable, Decodable, Hash, PartialEq, Eq)]
+pub struct RawComponentHandle {
+    id: u16,
+    serial: u32
+}
 impl<Component> ComponentHandle<Component> {
     pub fn cast<NewComponent>(self) -> ComponentHandle<NewComponent> {
         ComponentHandle { id: self.id, serial: self.serial }
+    }
+    pub fn to_raw(self) -> RawComponentHandle {
+        RawComponentHandle { id: self.id, serial: self.serial }
     }
 }
 impl<Component> PartialEq for ComponentHandle<Component> {
@@ -22,20 +29,16 @@ impl<Component> PartialEq for ComponentHandle<Component> {
     }
 }
 impl<Component> Eq for ComponentHandle<Component> {}
+impl<Component> Clone for ComponentHandle<Component> {
+    fn clone(&self) -> ComponentHandle<Component> {
+        ComponentHandle { id: self.id, serial: self.serial }
+    }
+}
+
 impl<Component> Hash<std::hash::sip::SipState> for ComponentHandle<Component> {
     fn hash(&self, state: &mut std::hash::sip::SipState) {
         self.id.hash(state);
         self.serial.hash(state);
-    }
-}
-impl<Component> Encodable<NetEncoder, NetProtocolError> for ComponentHandle<Component> {
-    fn encode(&self, s: &mut NetEncoder) -> Result<(), NetProtocolError> {
-        s.emit_handle(*self)
-    }
-}
-impl<Component: 'static> Decodable<NetDecoder, NetProtocolError> for ComponentHandle<Component> {
-    fn decode(d: &mut NetDecoder) -> Result<ComponentHandle<Component>, NetProtocolError> {
-        d.read_handle()
     }
 }
 

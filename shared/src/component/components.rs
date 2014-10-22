@@ -11,10 +11,24 @@ pub struct EntityComponent {
     pub pos: Point3<f32>,
     pub rot: Quaternion<f32>
 }
-
+#[deriving(Encodable, Decodable)]
+pub struct NoHandleEntityComponent {
+    pub pos: Point3<f32>,
+    pub rot: Quaternion<f32>
+}
 impl EntityComponent {
     pub fn get_handle(&self) -> EntityHandle {
         self.handle
+    }
+    pub fn to_nohandle(&self) -> NoHandleEntityComponent {
+        NoHandleEntityComponent { pos: self.pos, rot: self.rot }
+    }
+    pub fn from_nohandle(e: &NoHandleEntityComponent, handle: EntityHandle) -> EntityComponent {
+        EntityComponent {
+            handle: handle,
+            pos: e.pos,
+            rot: e.rot
+        }
     }
     
     /// Constructs an EntityComponent inside a
