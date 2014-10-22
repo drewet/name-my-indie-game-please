@@ -20,6 +20,7 @@ use glfw::Context;
 use renderer::RenderComponent;
 use shared::EntityComponent;
 use std::io::net::udp::UdpSocket;
+use serialize::json;
 
 mod input;
 mod renderer;
@@ -50,8 +51,8 @@ fn find_free_port(start_port: u16) -> UdpSocket {
         
         match UdpSocket::bind(bindaddr) {
             Ok(s) => return s,
+            Err(std::io::IoError{ kind: std::io::ConnectionRefused, ..}) => (),
             Err(e) => {
-                println!("{}", e.kind);
                 fail!("couldn't bind socket: {}", e)
             }
         }
@@ -66,7 +67,7 @@ fn gameloop() {
 
     let serveraddr = SocketAddr { ip: Ipv4Addr(127, 0, 0, 1), port: 18295 };
 
-    let socket = find_free_port(18294);
+    let socket = find_free_port(18296);
     let mut conn = socket.connect(serveraddr);
     
     let mut entities = ComponentStore::new();
@@ -102,29 +103,14 @@ fn gameloop() {
 
     let mut motion = None;
     let mut hdict = std::collections::HashMap::new();
+
+    conn.write_str(json::encode(&shared::network::Connect).as_slice()).unwrap();
+
     while !window.should_close() {
-        use serialize::json;
         use shared::network::protocol::apply_full_update;
         
         let framestart_ns = time::precise_time_ns();
-        
-        let mut buf = [0u8, ..4000];
 
-        match conn.read(&mut buf) {
-            Ok(len) => {
-                let buf = buf.slice_to(len);
-                let mut rdr = std::io::MemReader::new(buf.iter().map(|&e| e).collect());
-                let json = json::from_reader(&mut rdr).unwrap();
-                let mut dec = json::Decoder::new(json);
-                apply_full_update(&mut dec, &mut hdict, &mut entities, |e, h| EntityComponent::from_nohandle(&e, h), |e, store| {
-                    println!("Adding new entity.");
-                    let handle = store.add_with_handle(|handle| EntityComponent::from_nohandle(&e, handle));
-                    cam = Some(renderer::CameraComponent::new(handle));
-                    handle
-                });
-            },
-            Err(_) => ()
-        };
         glfw.poll_events();
 
         for (_, event) in glfw::flush_messages(&events) {
@@ -158,7 +144,36 @@ fn gameloop() {
             angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
             movement: motion
         };
-        conn.write_str(json::encode(&cmd).as_slice()).unwrap();
+        conn.write_str(json::encode(&shared::network::Playercmd(cmd)).as_slice()).unwrap();
+        let mut buf = [0u8, ..4000];
+
+        match conn.read(&mut buf) {
+            Ok(len) => {
+                use shared::network::{ServerToClient, Signon, Update};
+                let buf = buf.slice_to(len);
+                let packet: ServerToClient = json::decode(std::str::from_utf8(buf).unwrap()).unwrap();
+                match packet {
+                    Update(update) => {
+                        let mut rdr = std::io::MemReader::new(update.into_bytes());
+                        let json = json::from_reader(&mut rdr).unwrap();
+                        let mut dec = json::Decoder::new(json);
+                        apply_full_update(&mut dec, &mut hdict, &mut entities, |e, h| EntityComponent::from_nohandle(&e, h), |e, store| {
+                            println!("Adding new entity.");
+                            let handle = store.add_with_handle(|handle| EntityComponent::from_nohandle(&e, handle));
+                            renderables.add(RenderComponent{entity: handle});
+                            handle
+                        });
+                    },
+                    Signon(signon) => {
+                        let localplayer = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.,), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));;
+                        hdict.insert(signon.handle, localplayer);
+                        cam = Some(renderer::CameraComponent::new(localplayer));
+                    }
+                }
+            },
+            Err(_) => ()
+        };
+        
         //shared::playercmd::run_command(cmd, &mut controllable, &mut entities);
 
         match cam {
