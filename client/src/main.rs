@@ -48,7 +48,7 @@ fn find_free_port(start_port: u16) -> UdpSocket {
     use std::io::net::ip::{Ipv4Addr, SocketAddr};
 
     for port in range(start_port, std::u16::MAX) {
-        let bindaddr = SocketAddr { ip: Ipv4Addr(127, 0, 0, 1), port: port };
+        let bindaddr = SocketAddr { ip: Ipv4Addr(0, 0, 0, 0), port: port };
         
         match UdpSocket::bind(bindaddr) {
             Ok(s) => return s,
@@ -66,7 +66,7 @@ fn gameloop() {
     use std::io::net::ip::{Ipv4Addr, SocketAddr};
     use std::io::net::udp::UdpSocket;
 
-    let serveraddr = SocketAddr { ip: Ipv4Addr(127, 0, 0, 1), port: 18295 };
+    let serveraddr = SocketAddr { ip: Ipv4Addr(162, 243, 139, 73), port: 18295 };
 
     let mut socket = find_free_port(18296);
     socket.set_read_timeout(Some(0));

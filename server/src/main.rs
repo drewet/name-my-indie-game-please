@@ -34,7 +34,7 @@ fn gameloop() {
     use std::io::net::udp::UdpSocket;
     use shared::component::ComponentStore;
 
-    let bindaddr = SocketAddr { ip: Ipv4Addr(127, 0, 0, 1), port: 18295 };
+    let bindaddr = SocketAddr { ip: Ipv4Addr(0, 0, 0, 0), port: 18295 };
     let mut socket = match UdpSocket::bind(bindaddr) {
         Ok(s) => s,
         Err(e) => fail!("couldn't bind socket: {}", e),
@@ -137,7 +137,7 @@ fn gameloop() {
                     let signon = flate::deflate_bytes_zlib(signon.as_slice()).unwrap();
                     socket.send_to(signon.as_slice(), client.addr).unwrap();
                 },
-                TimingOut => fail!("Timed out from client.")
+                TimingOut => ()
             }
         }
         //println!("Server tick: {}", current_tick);
