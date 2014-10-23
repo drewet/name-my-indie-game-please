@@ -51,10 +51,10 @@ fn gameloop() {
     
     let mut current_tick = 0u64;
     let mut ticktimer = std::io::Timer::new().unwrap();
-    let mut ticks = ticktimer.periodic(std::time::Duration::nanoseconds((shared::TICK_LENGTH * 1000. * 1000. * 1000.) as i64));
+    let mut ticks = ticktimer.periodic(std::time::Duration::microseconds((shared::TICK_LENGTH * 1000. * 1000.) as i64));
 
     let mut ent_deltas: shared::network::delta::DeltaEncoder<EntityComponent, NoHandleEntityComponent> = shared::network::delta::DeltaEncoder::new(24);
-    //let mut frameend_ns = 0;
+    let mut frameend_s = 0.;
     for _ in ticks.iter() {
         use serialize::json;
         
@@ -142,8 +142,9 @@ fn gameloop() {
         }
         //println!("Server tick: {}", current_tick);
 
-        //println!("{}FPS server", 1000. * 1000. * 1000. / ((time::precise_time_ns() - frameend_ns) as f32));
-        //frameend_ns = time::precise_time_ns();
+        let newend = time::precise_time_s();
+        println!("{}FPS server", 1. / ((newend - frameend_s) as f32));
+        frameend_s = newend;
 
     }
 }
