@@ -1,19 +1,31 @@
+extern crate flate;
 extern crate cgmath;
 extern crate shared;
 extern crate serialize;
+extern crate time;
 
 use cgmath::{Point3, Point, Quaternion, Rotation, Rotation3};
 use shared::{ComponentHandle, EntityComponent, EntityHandle};
-use shared::network::{ClientToServer, Connect, Playercmd};
+use shared::component::components::NoHandleEntityComponent;
+use shared::network::{ClientToServer, Connect, Disconnect, Playercmd};
 use std::collections::HashMap;
 fn main() {
     gameloop();
 }
 
-pub struct Client {
+struct Client {
     addr: std::io::net::ip::SocketAddr,
     entity: EntityHandle,
-    controllable: ComponentHandle<shared::playercmd::ControllableComponent>
+    controllable: ComponentHandle<shared::playercmd::ControllableComponent>,
+    connstate: ConnectionState,
+    last_acked_tick: u64,
+}
+
+#[deriving(PartialEq, Eq)]
+enum ConnectionState {
+    SigningOn,
+    Playing,
+    TimingOut
 }
 
 fn gameloop() {
@@ -36,69 +48,102 @@ fn gameloop() {
     //let debugbox = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
     
     let mut clients: HashMap<SocketAddr, Client> = HashMap::new();
+    
+    let mut current_tick = 0u64;
+    let mut ticktimer = std::io::Timer::new().unwrap();
+    let mut ticks = ticktimer.periodic(std::time::Duration::nanoseconds((shared::TICK_LENGTH * 1000. * 1000. * 1000.) as i64));
 
-    loop {
+    let mut ent_deltas: shared::network::delta::DeltaEncoder<EntityComponent, NoHandleEntityComponent> = shared::network::delta::DeltaEncoder::new(24);
+    //let mut frameend_ns = 0;
+    for _ in ticks.iter() {
         use serialize::json;
-        use shared::network::protocol::encode_full_update;
         
-        let mut updatebuf = std::io::MemWriter::new();
-        encode_full_update(&mut json::Encoder::new(&mut updatebuf),
-            &entities,
-            |e: &EntityComponent| e.to_nohandle()
-        );
-        let update_data = updatebuf.unwrap();
-        let update = shared::network::Update(String::from_utf8(update_data).unwrap());
-        let update = json::encode(&update).into_bytes();
+        current_tick = current_tick + 1;
+        
+        ent_deltas.add_state(&entities, |ent| ent.to_nohandle());
 
         // incoming packets
         let mut recvbuf = [0u8, ..8192];
-        match socket.recv_from(&mut recvbuf) {
+        loop { match socket.recv_from(&mut recvbuf) {
             Ok((len, addr)) => {
                 let data = recvbuf.as_slice().slice_to(len);
+                let data = flate::inflate_bytes_zlib(data).unwrap();
+                let cmdstr = std::str::from_utf8(data.as_slice()).unwrap();
+                let cmd: shared::network::ClientToServer = json::decode(cmdstr).unwrap();
+
                 // borrow checker hack
                 let is_new = match clients.find_mut(&addr) {
                     Some(client) => {
-                        let cmdstr = std::str::from_utf8(data).unwrap();
-                        let cmd: shared::network::ClientToServer = json::decode(cmdstr).unwrap();
                         match cmd {
                             Playercmd(cmd) => {
+                                client.last_acked_tick = cmd.tick;
                                 shared::playercmd::run_command(cmd,controllables.find_mut(client.controllable).unwrap(), &mut entities);
+                                client.connstate = Playing;
                                 false
                             }
-                            Connect => true,
+                            Connect => false,
                             Disconnect => unimplemented!()
                         }
                     },
                     None => {
-                        true // is new
+                        match cmd {
+                            Connect => true,
+                            _ => false
+                        }
                     }
                 };
                 if is_new {
-                    println!("Got connect!");
+                    println!("Got connect from {}!", addr);
                     let playerent = EntityComponent::new(&mut entities,
                                                          Point3::new(0.0, 5., 0.0),
                                                          Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.))
                                                         );
                     let controllable = controllables.add(shared::playercmd::ControllableComponent::new(playerent));
 
-                    clients.swap(addr, Client {
+                    clients.remove(&addr);
+                    clients.insert(addr, Client {
                         addr: addr,
                         entity: playerent,
-                        controllable: controllable
+                        controllable: controllable,
+                        connstate: SigningOn,
+                        last_acked_tick: 0
                     });
-
-                    let signon = shared::network::Signon(shared::network::SignonPacket {
-                        handle: playerent.to_raw()
-                    });
-                    let signon = json::encode(&signon).into_bytes();
-                    socket.send_to(signon.as_slice(), addr).unwrap();
                 }
             },
-            Err(e) => ()
-        }
+            Err(e) => break,
+        }}
+
         // outgoing
-        for client in clients.values() {
-            socket.send_to(update.as_slice(), client.addr).unwrap();
+        for (_, client) in clients.iter_mut() {
+            if client.last_acked_tick != 0 && client.last_acked_tick + 512 < current_tick {
+                client.connstate = TimingOut;
+            };
+            match client.connstate {
+                Playing => {
+                    let update = shared::network::Update(shared::network::UpdatePacket {
+                        tick: current_tick,
+                        entity_updates: ent_deltas.create_delta(current_tick - client.last_acked_tick)
+                    });
+                    let update = json::encode(&update);
+                    let update = update.into_bytes();
+
+                    socket.send_to(flate::deflate_bytes_zlib(update.as_slice()).unwrap().as_slice(), client.addr).unwrap();
+                },
+                SigningOn => {
+                    let signon = shared::network::Signon(shared::network::SignonPacket {
+                        handle: client.entity.to_raw()
+                    });
+                    let signon = json::encode(&signon).into_bytes();
+                    let signon = flate::deflate_bytes_zlib(signon.as_slice()).unwrap();
+                    socket.send_to(signon.as_slice(), client.addr).unwrap();
+                },
+                TimingOut => fail!("Timed out from client.")
+            }
         }
+        //println!("Server tick: {}", current_tick);
+
+        //println!("{}FPS server", 1000. * 1000. * 1000. / ((time::precise_time_ns() - frameend_ns) as f32));
+        //frameend_ns = time::precise_time_ns();
+
     }
 }

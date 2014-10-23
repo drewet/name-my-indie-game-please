@@ -6,12 +6,12 @@ pub type EntityHandle = ComponentHandle<EntityComponent>;
 
 /// Represents an entity in the world.
 pub struct EntityComponent {
-    handle: EntityHandle,
+    pub handle: EntityHandle,
 
     pub pos: Point3<f32>,
     pub rot: Quaternion<f32>
 }
-#[deriving(Encodable, Decodable)]
+#[deriving(Encodable, Decodable, Clone, PartialEq)]
 pub struct NoHandleEntityComponent {
     pub pos: Point3<f32>,
     pub rot: Quaternion<f32>

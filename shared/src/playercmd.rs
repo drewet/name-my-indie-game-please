@@ -22,6 +22,7 @@ impl ControllableComponent {
 /// during the course of a single game tick.
 #[deriving(Encodable, Decodable)]
 pub struct PlayerCommand {
+    pub tick: u64,
     pub angles: Quaternion<f32>,
     /// RELATIVE TO ANGLES!
     pub movement: Vector3<f32>,

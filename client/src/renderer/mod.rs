@@ -168,6 +168,10 @@ impl Renderer {
             let ent = entities.find(renderable.entity);
             match ent {
                 Some(ent) => {
+                    if ent.handle == cament.handle {
+                        continue;
+                    };
+
                     let model = ent.make_matrix();
                     self.graphics.draw(&batch, &Params { color: [0.8, 1.0, 0.8], mvp: (proj * view * model).into_fixed()}, &self.frame);
                 },

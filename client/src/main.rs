@@ -5,6 +5,7 @@ extern crate gfx;
 #[phase(plugin)]
 extern crate gfx_macros;
 extern crate glfw;
+extern crate flate;
 extern crate native;
 extern crate serialize;
 extern crate shared;
@@ -67,20 +68,13 @@ fn gameloop() {
 
     let serveraddr = SocketAddr { ip: Ipv4Addr(127, 0, 0, 1), port: 18295 };
 
-    let socket = find_free_port(18296);
+    let mut socket = find_free_port(18296);
+    socket.set_read_timeout(Some(0));
     let mut conn = socket.connect(serveraddr);
     
     let mut entities = ComponentStore::new();
     let mut renderables = ComponentStore::new();
-    //let mut physicals = ComponentStore::new();
-
-    let ent = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
-    renderables.add(RenderComponent { entity: ent });
-    
-    //let cament = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
-    let mut cam = None; //renderer::CameraComponent::new(cament);
-   // let mut controllable = shared::playercmd::ControllableComponent::new(cament);
-    //let camphys = physicals.add(shared::physics::PhysicsComponent::new(cament));
+    let mut cam = None;
 
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
@@ -104,10 +98,13 @@ fn gameloop() {
     let mut motion = None;
     let mut hdict = std::collections::HashMap::new();
 
-    conn.write_str(json::encode(&shared::network::Connect).as_slice()).unwrap();
+    let mut last_command = 0.;
+    let mut localplayer = None;
 
+    let mut signedon = false;
+    let mut servertick = 0;
     while !window.should_close() {
-        use shared::network::protocol::apply_full_update;
+        use shared::network::protocol::apply_update;
         
         let framestart_ns = time::precise_time_ns();
 
@@ -141,41 +138,52 @@ fn gameloop() {
         let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,)).mul_s(0.1);
 
         let cmd = shared::playercmd::PlayerCommand {
+            tick: servertick,
             angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
             movement: motion
         };
-        conn.write_str(json::encode(&shared::network::Playercmd(cmd)).as_slice()).unwrap();
-        let mut buf = [0u8, ..4000];
+        if last_command + (shared::TICK_LENGTH as f64) < (framestart_ns as f64 / 1000. / 1000. / 1000.) {
+            last_command = (framestart_ns as f64 / 1000. / 1000. / 1000.);
+            let pkt = flate::deflate_bytes_zlib(if cam.is_some() {
+                json::encode(&shared::network::Playercmd(cmd)).into_bytes()
+            } else {
+                json::encode(&shared::network::Connect).into_bytes()
+            }.as_slice()).unwrap();
+            conn.write(pkt.as_slice());
+        }
 
-        match conn.read(&mut buf) {
+        let mut buf = [0u8, ..16000];
+
+        loop { match conn.read(&mut buf) {
             Ok(len) => {
                 use shared::network::{ServerToClient, Signon, Update};
-                let buf = buf.slice_to(len);
-                let packet: ServerToClient = json::decode(std::str::from_utf8(buf).unwrap()).unwrap();
+                let buf = flate::inflate_bytes_zlib(buf.slice_to(len)).expect("Decompression!");
+                let msg = std::str::from_utf8(buf.as_slice()).unwrap();
+                let packet: ServerToClient = json::decode(msg).unwrap();
                 match packet {
                     Update(update) => {
-                        let mut rdr = std::io::MemReader::new(update.into_bytes());
-                        let json = json::from_reader(&mut rdr).unwrap();
-                        let mut dec = json::Decoder::new(json);
-                        apply_full_update(&mut dec, &mut hdict, &mut entities, |e, h| EntityComponent::from_nohandle(&e, h), |e, store| {
+                        servertick = update.tick;
+                        apply_update(update.entity_updates.into_iter(), &mut hdict, &mut entities, |e, h| EntityComponent::from_nohandle(&e, h), |e, store| {
                             println!("Adding new entity.");
                             let handle = store.add_with_handle(|handle| EntityComponent::from_nohandle(&e, handle));
                             renderables.add(RenderComponent{entity: handle});
                             handle
                         });
                     },
-                    Signon(signon) => {
-                        let localplayer = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.,), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));;
-                        hdict.insert(signon.handle, localplayer);
-                        cam = Some(renderer::CameraComponent::new(localplayer));
+                    Signon(signon) if localplayer.is_none() => {
+                        println!("Got signon packet.");
+                        signedon = true;
+                        let playerent = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.,), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
+                        hdict.insert(signon.handle, playerent);
+                        cam = Some(renderer::CameraComponent::new(playerent));
+                        localplayer = Some(playerent);
                     }
+                    Signon(_) => ()
                 }
             },
-            Err(_) => ()
-        };
+            Err(e) => break,
+        } };
         
-        //shared::playercmd::run_command(cmd, &mut controllable, &mut entities);
-
         match cam {
             Some(ref cam) => renderer.render(cam, &mut renderables, &entities),
             None => ()

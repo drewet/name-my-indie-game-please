@@ -3,6 +3,7 @@ use component::{EntityComponent, RawComponentHandle};
 use component::components::NoHandleEntityComponent;
 
 pub mod protocol;
+pub mod delta;
 
 #[deriving(Encodable, Decodable)]
 pub enum ClientToServer {
@@ -14,10 +15,29 @@ pub enum ClientToServer {
 #[deriving(Encodable, Decodable)]
 pub enum ServerToClient {
     Signon(SignonPacket),
-    Update(String)
+    Update(UpdatePacket)
+}
+
+#[deriving(Encodable, Decodable)]
+pub struct UpdatePacket {
+    pub tick: u64,
+    pub entity_updates: Vec<ComponentUpdate<NoHandleEntityComponent>>
 }
 
 #[deriving(Encodable, Decodable)]
 pub struct SignonPacket {
     pub handle: RawComponentHandle
 }
+
+#[deriving(Encodable, Decodable)]
+pub struct ComponentUpdate<MarshalledComponent> {
+    target: RawComponentHandle,
+    data: ComponentUpdateType<MarshalledComponent>
+}
+
+#[deriving(Encodable, Decodable)]
+pub enum ComponentUpdateType<MarshalledComponent> {
+    Change(MarshalledComponent),
+    Destroy
+}
+
