@@ -11,4 +11,3 @@ script:
         - cargo test
         - cd ../server
         - cargo test
-        - cd ..
