@@ -67,8 +67,8 @@ fn gameloop() {
                 last_frame_start = starttime;
                 
                 break 'timing;
-            } else if time_until_next < 0.002 {
-                continue 'timing;
+            /* } else if time_until_next < 0.002 {
+                continue 'timing; */
             } else {
                 std::io::timer::sleep(std::time::Duration::milliseconds(1));
             }
