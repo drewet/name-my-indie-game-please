@@ -52,15 +52,27 @@ fn gameloop() {
     let mut current_tick = 0u64;
 
     let mut ent_deltas: shared::network::delta::DeltaEncoder<EntityComponent, NoHandleEntityComponent> = shared::network::delta::DeltaEncoder::new(24);
-    let mut frameend_s = 0.;
+    let mut next_tick_time = time::precise_time_s();
+    let mut last_frame_start = 0.;
     loop {
-        
         use serialize::json;
         
-        while time::precise_time_s() - frameend_s < shared::TICK_LENGTH as f64 {
-            // busywait
-        }
+        'timing: loop {
+            let starttime = time::precise_time_s();
+            let time_until_next = next_tick_time - starttime;
 
+            if time_until_next <= 0. {
+                next_tick_time = next_tick_time + (shared::TICK_LENGTH as f64);
+                println!("{}FPS", 1.0 / (starttime - last_frame_start));
+                last_frame_start = starttime;
+                
+                break 'timing;
+            } else if time_until_next < 0.002 {
+                continue 'timing;
+            } else {
+                std::io::timer::sleep(std::time::Duration::milliseconds(1));
+            }
+        }
         current_tick = current_tick + 1;
         
         ent_deltas.add_state(&entities, |ent| ent.to_nohandle());
@@ -143,11 +155,5 @@ fn gameloop() {
                 TimingOut => ()
             }
         }
-        //println!("Server tick: {}", current_tick);
-
-        let newend = time::precise_time_s();
-        println!("{}FPS server", 1. / ((newend - frameend_s) as f32));
-        frameend_s = time::precise_time_s();
-
     }
 }
