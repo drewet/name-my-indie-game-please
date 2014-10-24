@@ -63,7 +63,7 @@ fn gameloop() {
 
             if time_until_next <= 0. {
                 next_tick_time = next_tick_time + (shared::TICK_LENGTH as f64);
-                println!("{}FPS", 1.0 / (starttime - last_frame_start));
+                //println!("{}FPS", 1.0 / (starttime - last_frame_start));
                 last_frame_start = starttime;
                 
                 break 'timing;
