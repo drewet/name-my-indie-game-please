@@ -21,7 +21,10 @@ pub fn apply_update<Component, MarshalledComponent, UpdatesIter: Iterator<Compon
                 }
             },
             Destroy => match hdict.find_copy(&update.target) {
-                Some(handle) => {store.remove(handle);},
+                Some(handle) => {
+                    hdict.remove(&update.target);
+                    store.remove(handle);
+                },
                 None => () // weeeird.
             }
         }

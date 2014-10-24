@@ -27,11 +27,11 @@ mod input;
 mod renderer;
 
 // A weird hack to get arguments to the linker.
-#[cfg(target_family="windows")]
+/*#[cfg(target_family="windows")]
 mod windows_subsystem_hack {
     #[link_args="-Wl,--subsystem,windows -mwindows"]
     extern {}
-}
+}*/
 
 // We need to run on the main thread for GLFW, so ensure we are using the `native` runtime. This is
 // technically not needed, since this is the default, but it's not guaranteed.
