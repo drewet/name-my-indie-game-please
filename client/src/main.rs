@@ -54,8 +54,9 @@ fn gameloop() {
 
     let serveraddr = SocketAddr { ip: Ipv4Addr(162, 243, 139, 73), port: 18295 };
 
-    let stream = UdpSocket::bind(SocketAddr { ip: Ipv4Addr(0,0,0,0), port: 0}).unwrap().connect(serveraddr);
-    let mut netchan = NetChannel::from_stream(stream);
+    let mut stream = UdpSocket::bind(SocketAddr { ip: Ipv4Addr(0,0,0,0), port: 0}).unwrap().connect(serveraddr);
+    stream.as_socket(|sock| sock.set_read_timeout(Some(0)));
+    let mut netchan = NetChannel::new();
 
     let mut entities = ComponentStore::new();
     let mut renderables = ComponentStore::new();
@@ -126,11 +127,14 @@ fn gameloop() {
         let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,)).mul_s(0.1);
 
 
-        
-        loop { match netchan.try_recv_unreliable() {
-            Ok(packet) => {
+        let mut buf = [0u8, ..8192];
+
+        loop { match stream.read(buf) {
+            Ok(0) => (),
+            Ok(len) => {
                 use shared::network::{ServerToClient, Signon, Update};
 
+                let packet = netchan.recv_unreliable((buf.slice_to(len))).unwrap();
                 let packet = flate::inflate_bytes_zlib(packet.as_slice()).expect("Decompression!");
                 let packet = std::str::from_utf8(packet.as_slice()).unwrap();
                 let packet: ServerToClient = json::decode(packet).unwrap();
@@ -170,12 +174,12 @@ fn gameloop() {
                 movement: motion
             };
 
-            let pkt = flate::deflate_bytes_zlib(if signedon {
+            let pkt = netchan.send_unreliable(flate::deflate_bytes_zlib(if signedon {
                 json::encode(&shared::network::Playercmd(cmd)).into_bytes()
             } else {
                 json::encode(&shared::network::Connect).into_bytes()
-            }.as_slice()).unwrap();
-            netchan.send_unreliable(pkt.as_slice()).unwrap();
+            }.as_slice()).unwrap().as_slice()).unwrap();
+            stream.write(pkt.as_slice()).unwrap();
 
         }
 
