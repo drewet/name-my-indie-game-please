@@ -28,10 +28,10 @@ mod renderer;
 
 // A weird hack to get arguments to the linker.
 /*#[cfg(target_family="windows")]
-mod windows_subsystem_hack {
-    #[link_args="-Wl,--subsystem,windows -mwindows"]
-    extern {}
-}*/
+  mod windows_subsystem_hack {
+  #[link_args="-Wl,--subsystem,windows -mwindows"]
+  extern {}
+  }*/
 
 // We need to run on the main thread for GLFW, so ensure we are using the `native` runtime. This is
 // technically not needed, since this is the default, but it's not guaranteed.
@@ -49,7 +49,7 @@ fn find_free_port(start_port: u16) -> UdpSocket {
 
     for port in range(start_port, std::u16::MAX) {
         let bindaddr = SocketAddr { ip: Ipv4Addr(0, 0, 0, 0), port: port };
-        
+
         match UdpSocket::bind(bindaddr) {
             Ok(s) => return s,
             Err(std::io::IoError{ kind: std::io::ConnectionRefused, ..}) => (),
@@ -71,7 +71,7 @@ fn gameloop() {
     let mut socket = find_free_port(18296);
     socket.set_read_timeout(Some(0));
     let mut conn = socket.connect(serveraddr);
-    
+
     let mut entities = ComponentStore::new();
     let mut renderables = ComponentStore::new();
     let mut cam = None;
@@ -103,9 +103,10 @@ fn gameloop() {
 
     let mut signedon = false;
     let mut servertick = 0;
+
     while !window.should_close() {
         use shared::network::protocol::apply_update;
-        
+
         let framestart_ns = time::precise_time_ns();
 
         glfw.poll_events();
@@ -127,7 +128,7 @@ fn gameloop() {
                 _ => {},
             }
         }
-    
+
         // shared::physics::simulate_tick(&mut physicals, &mut entities);
         // networking
         //     get updates from server, update gamestate
@@ -137,13 +138,16 @@ fn gameloop() {
         //
         let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,)).mul_s(0.1);
 
-        let cmd = shared::playercmd::PlayerCommand {
-            tick: servertick,
-            angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
-            movement: motion
-        };
+
         if last_command + (shared::TICK_LENGTH as f64) < (framestart_ns as f64 / 1000. / 1000. / 1000.) {
             last_command = (framestart_ns as f64 / 1000. / 1000. / 1000.);
+
+            let cmd = shared::playercmd::PlayerCommand {
+                tick: servertick,
+                angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
+                movement: motion
+            };
+
             let pkt = flate::deflate_bytes_zlib(if cam.is_some() {
                 json::encode(&shared::network::Playercmd(cmd)).into_bytes()
             } else {
@@ -183,7 +187,7 @@ fn gameloop() {
             },
             Err(e) => break,
         } };
-        
+
         match cam {
             Some(ref cam) => renderer.render(cam, &mut renderables, &entities),
             None => ()
@@ -195,8 +199,5 @@ fn gameloop() {
         let frametime_ns = frameend_ns - framestart_ns;
         let fps = 1000 * 1000 * 1000 / frametime_ns;
         window.set_title(format!("{}FPS, frametime: {}ns", fps, frametime_ns).as_slice());
-        if fps < 200 {
-            println!("SLOW FRAME! {}FPS, frametime: {}ns", fps, frametime_ns);
-        }
     }
 }

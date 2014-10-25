@@ -9,6 +9,7 @@ use shared::{ComponentHandle, EntityComponent, EntityHandle};
 use shared::component::components::NoHandleEntityComponent;
 use shared::network::{ClientToServer, Connect, Disconnect, Playercmd};
 use std::collections::HashMap;
+
 fn main() {
     gameloop();
 }
@@ -51,7 +52,8 @@ fn gameloop() {
     
     let mut current_tick = 0u64;
 
-    let mut ent_deltas: shared::network::delta::DeltaEncoder<EntityComponent, NoHandleEntityComponent> = shared::network::delta::DeltaEncoder::new(24);
+    let mut ent_deltas: shared::network::delta::DeltaEncoder<EntityComponent, NoHandleEntityComponent> = shared::network::delta::DeltaEncoder::new(64);
+
     let mut next_tick_time = time::precise_time_s();
     let mut last_frame_start = 0.;
     loop {
@@ -73,6 +75,7 @@ fn gameloop() {
                 std::io::timer::sleep(std::time::Duration::milliseconds(1));
             }
         }
+
         current_tick = current_tick + 1;
         
         ent_deltas.add_state(&entities, |ent| ent.to_nohandle());
@@ -107,6 +110,7 @@ fn gameloop() {
                         }
                     }
                 };
+
                 if is_new {
                     println!("Got connect from {}!", addr);
                     let playerent = EntityComponent::new(&mut entities,
