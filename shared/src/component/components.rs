@@ -5,6 +5,7 @@ use component::{ComponentHandle, ComponentStore};
 pub type EntityHandle = ComponentHandle<EntityComponent>;
 
 /// Represents an entity in the world.
+#[deriving(Clone)]
 pub struct EntityComponent {
     pub handle: EntityHandle,
 

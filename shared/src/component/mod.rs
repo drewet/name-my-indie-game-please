@@ -42,6 +42,7 @@ impl<Component> Hash<std::hash::sip::SipState> for ComponentHandle<Component> {
     }
 }
 
+#[deriving(Clone)]
 struct ComponentBookkeeper<Component> {
     serial: u32,
     component: Option<Component>
@@ -71,6 +72,7 @@ impl<'a, Component> Iterator<(ComponentHandle<Component>, &'a mut Component)> fo
 }
 
 /// Stores components.
+#[deriving(Clone)]
 pub struct ComponentStore<Component> {
     // TODO: replace Vecs and stuff w/ fixed-size arrays
     components: Vec<ComponentBookkeeper<Component>>
@@ -78,7 +80,7 @@ pub struct ComponentStore<Component> {
 
 impl<Component> ComponentStore<Component> {
     pub fn new() -> ComponentStore<Component> {
-        ComponentStore { components: Vec::from_fn(2048, |_| ComponentBookkeeper {
+        ComponentStore { components: Vec::from_fn(64, |_| ComponentBookkeeper {
             serial: 0,
             component: None
         })} 

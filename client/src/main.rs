@@ -25,6 +25,7 @@ use serialize::json;
 
 mod input;
 mod renderer;
+mod prediction;
 
 // A weird hack to get arguments to the linker.
 /*#[cfg(target_family="windows")]
@@ -103,6 +104,9 @@ fn gameloop() {
 
     let mut signedon = false;
     let mut servertick = 0;
+    let mut old_servertick = 0;
+
+    let mut prediction: Option<prediction::Prediction> = None;
 
     while !window.should_close() {
         use shared::network::protocol::apply_update;
@@ -139,23 +143,7 @@ fn gameloop() {
         let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,)).mul_s(0.1);
 
 
-        if last_command + (shared::TICK_LENGTH as f64) < (framestart_ns as f64 / 1000. / 1000. / 1000.) {
-            last_command = (framestart_ns as f64 / 1000. / 1000. / 1000.);
-
-            let cmd = shared::playercmd::PlayerCommand {
-                tick: servertick,
-                angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
-                movement: motion
-            };
-
-            let pkt = flate::deflate_bytes_zlib(if cam.is_some() {
-                json::encode(&shared::network::Playercmd(cmd)).into_bytes()
-            } else {
-                json::encode(&shared::network::Connect).into_bytes()
-            }.as_slice()).unwrap();
-            conn.write(pkt.as_slice());
-        }
-
+        
         let mut buf = [0u8, ..16000];
 
         loop { match conn.read(&mut buf) {
@@ -178,6 +166,8 @@ fn gameloop() {
                         println!("Got signon packet.");
                         signedon = true;
                         let playerent = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.,), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
+                        prediction = Some(prediction::Prediction::new(shared::playercmd::ControllableComponent::new(playerent)));
+
                         hdict.insert(signon.handle, playerent);
                         cam = Some(renderer::CameraComponent::new(playerent));
                         localplayer = Some(playerent);
@@ -187,9 +177,38 @@ fn gameloop() {
             },
             Err(e) => break,
         } };
+        if servertick != old_servertick {
+            old_servertick = servertick;
+            prediction.as_mut().unwrap().add_server_update(servertick,
+                                                       entities.clone());
+        };
+
+        if last_command + (shared::TICK_LENGTH as f64) < (framestart_ns as f64 / 1000. / 1000. / 1000.) {
+            last_command = (framestart_ns as f64 / 1000. / 1000. / 1000.);
+
+            let cmd = shared::playercmd::PlayerCommand {
+                tick: servertick,
+                angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
+                movement: motion
+            };
+
+            let pkt = flate::deflate_bytes_zlib(if signedon {
+                let pred = prediction.as_mut().unwrap();
+                while (( 0.13 / shared::TICK_LENGTH ).floor() as uint) > pred.len() {
+                    if !pred.predict_tick(cmd) { break }
+                }
+
+                json::encode(&shared::network::Playercmd(cmd)).into_bytes()
+            } else {
+                json::encode(&shared::network::Connect).into_bytes()
+            }.as_slice()).unwrap();
+            conn.write(pkt.as_slice());
+
+        }
+        let predicted_entities = prediction.as_mut().and_then(|pred| pred.get_predicted_state());
 
         match cam {
-            Some(ref cam) => renderer.render(cam, &mut renderables, &entities),
+            Some(ref cam) => renderer.render(cam, &mut renderables, predicted_entities.as_ref().unwrap_or(&entities)),
             None => ()
         };
 
