@@ -8,6 +8,7 @@ use cgmath::{Point3, Point, Quaternion, Rotation, Rotation3};
 use shared::{ComponentHandle, EntityComponent, EntityHandle};
 use shared::component::components::NoHandleEntityComponent;
 use shared::network::{ClientToServer, Connect, Disconnect, Playercmd};
+use shared::network::channel::NetChannel;
 use std::collections::HashMap;
 
 fn main() {
@@ -15,7 +16,8 @@ fn main() {
 }
 
 struct Client {
-    addr: std::io::net::ip::SocketAddr,
+    channel: NetChannel,
+
     entity: EntityHandle,
     controllable: ComponentHandle<shared::playercmd::ControllableComponent>,
     connstate: ConnectionState,

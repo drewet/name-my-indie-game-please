@@ -1,9 +1,6 @@
 use std;
 use std::collections::{Deque, RingBuf};
-
-use std::io::net::udp::UdpStream;
 use std::io::IoResult;
-//use std::io::net::ip::{Ipv4Addr};
 
 type SequenceNr = u32;
 
@@ -26,16 +23,11 @@ pub struct NetChannel {
     
     send_times: RingBuf<f64>,
     latency: f64,
-
-    stream: UdpStream,
 }
 
 impl NetChannel {
 
-    /// Doesn't actually do any networking.
-    pub fn from_stream(mut stream: UdpStream) -> NetChannel {
-        stream.as_socket(|sock| sock.set_read_timeout(Some(0)));
-
+    pub fn new() -> NetChannel {
         NetChannel {
             last_outgoing: 0,
             last_acked_outgoing: 0,
@@ -43,12 +35,10 @@ impl NetChannel {
 
             send_times: RingBuf::new(),
             latency: 0.,
-
-            stream: stream,
         }
     }
 
-    pub fn send_unreliable(&mut self, data: &[u8]) -> IoResult<()> {
+    pub fn send_unreliable(&mut self, data: &[u8]) -> IoResult<Vec<u8>> {
         let mut buf = std::io::MemWriter::with_capacity(data.len() + 16);
         
         self.last_outgoing += 1;
@@ -60,19 +50,11 @@ impl NetChannel {
         try!(buf.write_le_u64(data.len() as u64));
         try!(buf.write(data));
 
-        self.stream.write(buf.get_ref())
+        Ok(buf.unwrap())
     }
 
-    pub fn try_recv_unreliable(&mut self) -> IoResult<Vec<u8>> {
-        let mut buf = [0u8, ..8192];
-        
-        let mut len = 0;
-
-        while len == 0 {
-            len = try!(self.stream.read(&mut buf));
-        }
-
-        let mut buf = std::io::BufReader::new(buf.slice_to(len));
+    pub fn recv_unreliable(&mut self, datagram: &[u8]) -> IoResult<Vec<u8>> {
+        let mut buf = std::io::BufReader::new(datagram);
         
         let sequence_number = try!(buf.read_le_u32());
         let acked_sequence_number = try!(buf.read_le_u32());
@@ -83,16 +65,6 @@ impl NetChannel {
         self.ack(acked_sequence_number);
 
         Ok(payload)
-    }
-
-    pub fn recv_unreliable(&mut self) -> IoResult<Vec<u8>> {
-        loop {
-            match self.try_recv_unreliable() {
-                Ok(result) => return Ok(result),
-                Err(ref e) if e.kind == std::io::TimedOut => continue,
-                Err(e) => return Err(e)
-            }
-        }
     }
 
     fn ack(&mut self, seq: SequenceNr) {
@@ -110,44 +82,30 @@ impl NetChannel {
     pub fn get_latency(&self) -> f64 {
         self.latency
     }
+
 }
 
 mod test {
-    use std::io::net::udp::UdpSocket;
-    use std::io::net::ip::{Ipv4Addr, SocketAddr};
     use super::NetChannel;
-
-    fn get_channel_pair() -> (NetChannel, NetChannel) {
-        let mut sock1 = UdpSocket::bind(SocketAddr{ ip: Ipv4Addr(127, 0, 0, 1), port: 0 }).unwrap();
-        let mut sock2 = UdpSocket::bind(SocketAddr{ ip: Ipv4Addr(127, 0, 0, 1), port: 0 }).unwrap();
-        let sock1_addr = sock1.socket_name().unwrap();
-
-        let stream1 = sock1.connect(sock2.socket_name().unwrap());
-        let stream2 = sock2.connect(sock1_addr);
-
-        (NetChannel::from_stream(stream1), NetChannel::from_stream(stream2))
-    }
-
 
     #[test]
     fn smoke_netchannel() {
-        let (mut chan1, mut chan2) = get_channel_pair();
+        let (mut chan1, mut chan2) = (NetChannel::new(), NetChannel::new());
 
-        chan1.send_unreliable(b"Hello, world!").unwrap();
-        let result = chan2.recv_unreliable().unwrap();
+        let result = chan2.recv_unreliable(chan1.send_unreliable(b"Hello, world!").unwrap().as_slice()).unwrap();
         assert_eq!(result.as_slice(), b"Hello, world!");
     }
 
     #[test]
     fn double_ended() {
-        let (mut chan1, mut chan2) = get_channel_pair();
+        let (mut chan1, mut chan2) = (NetChannel::new(), NetChannel::new());
 
-        chan1.send_unreliable(b"Hello, chan2!").unwrap();
-        let result = chan2.recv_unreliable().unwrap();
+        let pkt = chan1.send_unreliable(b"Hello, chan2!").unwrap();
+        let result = chan2.recv_unreliable(pkt.as_slice()).unwrap();
         assert_eq!(result.as_slice(), b"Hello, chan2!");
 
-        chan2.send_unreliable(b"Hello, chan1!").unwrap();
-        let result = chan1.recv_unreliable().unwrap();
+        let pkt = chan2.send_unreliable(b"Hello, chan1!").unwrap();
+        let result = chan1.recv_unreliable(pkt.as_slice()).unwrap();
         assert_eq!(result.as_slice(), b"Hello, chan1!");
     }
 }
