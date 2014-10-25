@@ -20,6 +20,7 @@ extern crate anymap;
 extern crate cgmath;
 extern crate serialize;
 extern crate test;
+extern crate time;
 
 pub use component::{
     ComponentStore, ComponentHandle,

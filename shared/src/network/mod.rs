@@ -2,6 +2,7 @@ pub use playercmd::PlayerCommand;
 use component::{EntityComponent, RawComponentHandle};
 use component::components::NoHandleEntityComponent;
 
+pub mod channel;
 pub mod protocol;
 pub mod delta;
 

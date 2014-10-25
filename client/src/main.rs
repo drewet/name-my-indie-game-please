@@ -45,33 +45,17 @@ fn main() {
     gameloop()
 }
 
-fn find_free_port(start_port: u16) -> UdpSocket {
-    use std::io::net::ip::{Ipv4Addr, SocketAddr};
-
-    for port in range(start_port, std::u16::MAX) {
-        let bindaddr = SocketAddr { ip: Ipv4Addr(0, 0, 0, 0), port: port };
-
-        match UdpSocket::bind(bindaddr) {
-            Ok(s) => return s,
-            Err(std::io::IoError{ kind: std::io::ConnectionRefused, ..}) => (),
-            Err(e) => {
-                fail!("couldn't bind socket: {}", e)
-            }
-        }
-    } 
-    unreachable!()
-}
 fn gameloop() {
     use shared::component::ComponentStore;
+    use shared::network::channel::NetChannel;
 
     use std::io::net::ip::{Ipv4Addr, SocketAddr};
     use std::io::net::udp::UdpSocket;
 
     let serveraddr = SocketAddr { ip: Ipv4Addr(162, 243, 139, 73), port: 18295 };
 
-    let mut socket = find_free_port(18296);
-    socket.set_read_timeout(Some(0));
-    let mut conn = socket.connect(serveraddr);
+    let stream = UdpSocket::bind(SocketAddr { ip: Ipv4Addr(0,0,0,0), port: 0}).unwrap().connect(serveraddr);
+    let mut netchan = NetChannel::from_stream(stream);
 
     let mut entities = ComponentStore::new();
     let mut renderables = ComponentStore::new();
@@ -104,7 +88,6 @@ fn gameloop() {
 
     let mut signedon = false;
     let mut servertick = 0;
-    let mut old_servertick = 0;
 
     let mut prediction: Option<prediction::Prediction> = None;
 
@@ -144,14 +127,13 @@ fn gameloop() {
 
 
         
-        let mut buf = [0u8, ..16000];
-
-        loop { match conn.read(&mut buf) {
-            Ok(len) => {
+        loop { match netchan.try_recv_unreliable() {
+            Ok(packet) => {
                 use shared::network::{ServerToClient, Signon, Update};
-                let buf = flate::inflate_bytes_zlib(buf.slice_to(len)).expect("Decompression!");
-                let msg = std::str::from_utf8(buf.as_slice()).unwrap();
-                let packet: ServerToClient = json::decode(msg).unwrap();
+
+                let packet = flate::inflate_bytes_zlib(packet.as_slice()).expect("Decompression!");
+                let packet = std::str::from_utf8(packet.as_slice()).unwrap();
+                let packet: ServerToClient = json::decode(packet).unwrap();
                 match packet {
                     Update(update) => {
                         servertick = update.tick;
@@ -175,13 +157,9 @@ fn gameloop() {
                     Signon(_) => ()
                 }
             },
-            Err(e) => break,
+            Err(ref e) if e.kind == std::io::TimedOut => break,
+            Err(e) => fail!("Network error: {}", e)
         } };
-        if servertick != old_servertick {
-            old_servertick = servertick;
-            prediction.as_mut().unwrap().add_server_update(servertick,
-                                                       entities.clone());
-        };
 
         if last_command + (shared::TICK_LENGTH as f64) < (framestart_ns as f64 / 1000. / 1000. / 1000.) {
             last_command = (framestart_ns as f64 / 1000. / 1000. / 1000.);
@@ -193,22 +171,18 @@ fn gameloop() {
             };
 
             let pkt = flate::deflate_bytes_zlib(if signedon {
-                let pred = prediction.as_mut().unwrap();
-                while (( 0.13 / shared::TICK_LENGTH ).floor() as uint) > pred.len() {
-                    if !pred.predict_tick(cmd) { break }
-                }
-
                 json::encode(&shared::network::Playercmd(cmd)).into_bytes()
             } else {
                 json::encode(&shared::network::Connect).into_bytes()
             }.as_slice()).unwrap();
-            conn.write(pkt.as_slice());
+            netchan.send_unreliable(pkt.as_slice()).unwrap();
 
         }
-        let predicted_entities = prediction.as_mut().and_then(|pred| pred.get_predicted_state());
+
+        //let predicted_entities = prediction.as_mut().and_then(|pred| pred.get_predicted_state());
 
         match cam {
-            Some(ref cam) => renderer.render(cam, &mut renderables, predicted_entities.as_ref().unwrap_or(&entities)),
+            Some(ref cam) => renderer.render(cam, &mut renderables, &entities),
             None => ()
         };
 
