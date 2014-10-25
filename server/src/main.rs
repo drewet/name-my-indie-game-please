@@ -16,6 +16,7 @@ fn main() {
 }
 
 struct Client {
+    addr: std::io::net::ip::SocketAddr,
     channel: NetChannel,
 
     entity: EntityHandle,
@@ -83,18 +84,22 @@ fn gameloop() {
         ent_deltas.add_state(&entities, |ent| ent.to_nohandle());
 
         // incoming packets
-        let mut recvbuf = [0u8, ..8192];
+        let mut recvbuf = [0u8, ..8192]; 
         loop { match socket.recv_from(&mut recvbuf) {
             Ok((len, addr)) => {
                 let data = recvbuf.as_slice().slice_to(len);
-                let data = flate::inflate_bytes_zlib(data).unwrap();
-                let cmdstr = std::str::from_utf8(data.as_slice()).unwrap();
-                let cmd: shared::network::ClientToServer = json::decode(cmdstr).unwrap();
 
                 // borrow checker hack
                 let is_new = match clients.find_mut(&addr) {
                     Some(client) => {
+
+                        let data = client.channel.recv_unreliable(data).unwrap();
+                        let data = flate::inflate_bytes_zlib(data.as_slice()).unwrap();
+                        let cmdstr = std::str::from_utf8(data.as_slice()).unwrap();
+                        let cmd: shared::network::ClientToServer = json::decode(cmdstr).unwrap();
+
                         match cmd {
+
                             Playercmd(cmd) => {
                                 client.last_acked_tick = cmd.tick;
                                 shared::playercmd::run_command(cmd,controllables.find_mut(client.controllable).unwrap(), &mut entities);
@@ -105,12 +110,7 @@ fn gameloop() {
                             Disconnect => unimplemented!()
                         }
                     },
-                    None => {
-                        match cmd {
-                            Connect => true,
-                            _ => false
-                        }
-                    }
+                    None => true
                 };
 
                 if is_new {
@@ -124,6 +124,7 @@ fn gameloop() {
                     clients.remove(&addr);
                     clients.insert(addr, Client {
                         addr: addr,
+                        channel: NetChannel::new(),
                         entity: playerent,
                         controllable: controllable,
                         connstate: SigningOn,
@@ -148,7 +149,9 @@ fn gameloop() {
                     let update = json::encode(&update);
                     let update = update.into_bytes();
 
-                    socket.send_to(flate::deflate_bytes_zlib(update.as_slice()).unwrap().as_slice(), client.addr).unwrap();
+                    let update = flate::deflate_bytes_zlib(update.as_slice()).unwrap();
+                    let datagram = client.channel.send_unreliable(update.as_slice());
+                    socket.send_to(datagram.unwrap().as_slice(), client.addr).unwrap();
                 },
                 SigningOn => {
                     let signon = shared::network::Signon(shared::network::SignonPacket {
@@ -156,7 +159,8 @@ fn gameloop() {
                     });
                     let signon = json::encode(&signon).into_bytes();
                     let signon = flate::deflate_bytes_zlib(signon.as_slice()).unwrap();
-                    socket.send_to(signon.as_slice(), client.addr).unwrap();
+                    let datagram = client.channel.send_unreliable(signon.as_slice());
+                    socket.send_to(datagram.unwrap().as_slice(), client.addr).unwrap();
                 },
                 TimingOut => ()
             }
