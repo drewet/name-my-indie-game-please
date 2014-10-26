@@ -152,7 +152,7 @@ fn gameloop() {
                 Playing => {
                     let update = shared::network::Update(shared::network::UpdatePacket {
                         tick: current_tick,
-                        entity_updates: ent_deltas.create_delta(9999)
+                        entity_updates: ent_deltas.create_delta((client.channel.get_outgoing_sequencenr() + 1 - client.channel.get_acked_outgoing_sequencenr()) as u64)
                     });
                     let update = json::encode(&update);
                     let update = update.into_bytes();
