@@ -94,6 +94,9 @@ fn gameloop() {
 
                         let data = client.channel.recv_unreliable(data).unwrap();
                         let dropped_packets = client.channel.get_incoming_sequencenr() - prevseq;
+                        if dropped_packets > 0 {
+                            println!("Lost {} client packets...", dropped_packets)
+                        }
 
                         let data = flate::inflate_bytes_zlib(data.as_slice()).unwrap();
                         let cmdstr = std::str::from_utf8(data.as_slice()).unwrap();
