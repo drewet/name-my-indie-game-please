@@ -1,4 +1,3 @@
-use cgmath;
 use cgmath::{Matrix4, Point, Point3, ToMatrix4, Quaternion};
 use component::{ComponentHandle, ComponentStore};
 

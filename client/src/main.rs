@@ -13,19 +13,17 @@ extern crate time;
 
 use cgmath::{Point, Point3};
 use cgmath::Rotation3;
-use cgmath::Rotation;
 use cgmath::Vector3;
 use cgmath::Vector;
 use cgmath::ToRad;
 use glfw::Context;
 use renderer::RenderComponent;
 use shared::EntityComponent;
-use std::io::net::udp::UdpSocket;
 use serialize::json;
 
 mod input;
 mod renderer;
-mod prediction;
+//mod prediction;
 
 // A weird hack to get arguments to the linker.
 /*#[cfg(target_family="windows")]
@@ -90,8 +88,6 @@ fn gameloop() {
     let mut signedon = false;
     let mut servertick = 0;
 
-    let mut prediction: Option<prediction::Prediction> = None;
-
     while !window.should_close() {
         use shared::network::protocol::apply_update;
 
@@ -152,8 +148,6 @@ fn gameloop() {
                         println!("Got signon packet.");
                         signedon = true;
                         let playerent = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.,), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
-                        prediction = Some(prediction::Prediction::new(shared::playercmd::ControllableComponent::new(playerent)));
-
                         hdict.insert(signon.handle, playerent);
                         cam = Some(renderer::CameraComponent::new(playerent));
                         localplayer = Some(playerent);
@@ -166,7 +160,7 @@ fn gameloop() {
         } };
 
         if last_command + (shared::TICK_LENGTH as f64) < (framestart_ns as f64 / 1000. / 1000. / 1000.) {
-            last_command = (framestart_ns as f64 / 1000. / 1000. / 1000.);
+            last_command = framestart_ns as f64 / 1000. / 1000. / 1000.;
 
             let cmd = shared::playercmd::PlayerCommand {
                 tick: servertick,
@@ -190,6 +184,7 @@ fn gameloop() {
             None => ()
         };
 
+        println!("{}", netchan.get_latency());
         window.swap_buffers();
 
         let frameend_ns = time::precise_time_ns();

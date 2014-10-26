@@ -4,7 +4,7 @@ extern crate shared;
 extern crate serialize;
 extern crate time;
 
-use cgmath::{Point3, Point, Quaternion, Rotation, Rotation3};
+use cgmath::{Point3, Rotation3};
 use shared::{ComponentHandle, EntityComponent, EntityHandle};
 use shared::component::components::NoHandleEntityComponent;
 use shared::network::{ClientToServer, Connect, Disconnect, Playercmd};
@@ -58,7 +58,6 @@ fn gameloop() {
     let mut ent_deltas: shared::network::delta::DeltaEncoder<EntityComponent, NoHandleEntityComponent> = shared::network::delta::DeltaEncoder::new(64);
 
     let mut next_tick_time = time::precise_time_s();
-    let mut last_frame_start = 0.;
     loop {
         use serialize::json;
         
@@ -69,7 +68,6 @@ fn gameloop() {
             if time_until_next <= 0. {
                 next_tick_time = next_tick_time + (shared::TICK_LENGTH as f64);
                 //println!("{}FPS", 1.0 / (starttime - last_frame_start));
-                last_frame_start = starttime;
                 
                 break 'timing;
             /* } else if time_until_next < 0.002 {
@@ -132,7 +130,7 @@ fn gameloop() {
                     });
                 }
             },
-            Err(e) => break,
+            Err(_) => break,
         }}
 
         // outgoing

@@ -1,6 +1,4 @@
-use component::{ComponentHandle, ComponentStore, EntityComponent, EntityHandle};
-use physics::PhysicsComponent;
-use cgmath;
+use component::{ComponentStore, EntityComponent, EntityHandle};
 use cgmath::{Point, Vector, Vector3, Quaternion};
 
 pub struct ControllableComponent {

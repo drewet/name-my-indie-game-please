@@ -1,6 +1,6 @@
 use std;
 use std::hash::Hash;
-use serialize::{Decodable, Encodable, Decoder, Encoder};
+use serialize::{Encodable, Decoder, Encoder};
 
 pub use self::components::{EntityComponent, EntityHandle};
 pub mod components;

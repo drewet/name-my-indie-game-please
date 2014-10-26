@@ -30,7 +30,11 @@ impl Prediction {
         self.history.push(cmd);
     }
 
-    pub fn predict(&mut self, entities: &mut ComponentStore<EntityComponent>) {
+    pub fn predict(&mut self, ticks: u64, entities: &mut ComponentStore<EntityComponent>) {
+        while self.history.len() as u64 > ticks {
+            self.history.pop_front();
+        }
+
         let mut controllable = self.controllable;
 
         for cmd in self.history.iter_mut() {

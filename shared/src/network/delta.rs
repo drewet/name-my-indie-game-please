@@ -1,5 +1,5 @@
 use std::collections::{Deque, HashMap, RingBuf};
-use component::{RawComponentHandle, ComponentHandle, ComponentStore};
+use component::{RawComponentHandle, ComponentStore};
 use super::{ComponentUpdate, Change, Destroy};
 
 pub struct DeltaEncoder<Component, MarshalledComponent> {
@@ -74,7 +74,7 @@ impl<Component, MarshalledComponent: PartialEq + Clone> DeltaEncoder<Component, 
             }
             // removals aren't covered in the previous loop,
             // so we have to go through here. this sucks.
-            for (handle, comp) in prev_state.iter().filter(|&(handle, _)| curr_state.find(handle).is_none()) {
+            for (handle, _) in prev_state.iter().filter(|&(handle, _)| curr_state.find(handle).is_none()) {
                 updates.insert(handle, Destroy);
             }
         }

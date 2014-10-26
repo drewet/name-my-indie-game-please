@@ -1,5 +1,5 @@
 use cgmath::{Vector, Vector3, Point};
-use {ComponentHandle, ComponentStore, EntityHandle, EntityComponent};
+use {ComponentStore, EntityHandle, EntityComponent};
 use TICK_LENGTH;
 
 pub mod collision;

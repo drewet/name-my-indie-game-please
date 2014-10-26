@@ -4,7 +4,7 @@ use std::io::IoResult;
 
 type SequenceNr = u32;
 
-fn overflow_aware_compare(a: SequenceNr, b: SequenceNr) -> std::cmp::Ordering {
+/*fn overflow_aware_compare(a: SequenceNr, b: SequenceNr) -> std::cmp::Ordering {
     use std::cmp::{max, min};
     
     let abs_difference = max(a, b) - min(a, b);
@@ -14,7 +14,7 @@ fn overflow_aware_compare(a: SequenceNr, b: SequenceNr) -> std::cmp::Ordering {
     } else {
         b.cmp(&a)
     }
-}
+}*/
 
 pub struct NetChannel {
     last_outgoing: SequenceNr,
@@ -75,7 +75,7 @@ impl NetChannel {
 
         for _ in range(0, seq - prev_acked) {
             let sendtime = self.send_times.pop_front().expect("Too many acks!");
-            self.latency = (curtime - sendtime);
+            self.latency = curtime - sendtime;
         }
     }
 
@@ -85,6 +85,7 @@ impl NetChannel {
 
 }
 
+#[cfg(test)]
 mod test {
     use super::NetChannel;
 

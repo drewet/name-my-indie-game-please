@@ -1,13 +1,8 @@
 notifications:
   irc: "irc.quakenet.org#nmigp"
 language: rust
-before_install:
-        - sudo apt-get update -qq
-        - sudo apt-get install libglfw3-dev
 script:
         - cd shared
-        - cargo test
-        - cd ../client
         - cargo test
         - cd ../server
         - cargo test

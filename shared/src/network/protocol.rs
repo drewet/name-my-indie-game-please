@@ -1,4 +1,3 @@
-use serialize::{Decoder, Decodable, Encoder, Encodable};
 use std::collections::HashMap;
 use component::{RawComponentHandle, ComponentHandle, ComponentStore};
 use super::{Change, ComponentUpdate, Destroy};

@@ -4,7 +4,6 @@ use glfw;
 use gfx;
 use gfx::{Device, DeviceHelper, ToSlice};
 use shared::component::{ComponentStore,
-    ComponentHandle,
     EntityComponent,
     EntityHandle
 };
@@ -147,7 +146,7 @@ impl Renderer {
     }
 
     pub fn render(&mut self, cam: &CameraComponent, renderables: &mut ComponentStore<RenderComponent>, entities: &ComponentStore<EntityComponent>) {
-        let mut drawstate = gfx::DrawState::new().depth(gfx::state::LessEqual, true);
+        let drawstate = gfx::DrawState::new().depth(gfx::state::LessEqual, true);
 
         let batch: DebugBox = self.graphics.make_batch(
             &self.shader, &self.mesh, self.indices.to_slice(gfx::TriangleList), &drawstate).unwrap();

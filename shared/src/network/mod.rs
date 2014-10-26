@@ -1,5 +1,5 @@
 pub use playercmd::PlayerCommand;
-use component::{EntityComponent, RawComponentHandle};
+use component::{RawComponentHandle};
 use component::components::NoHandleEntityComponent;
 
 pub mod channel;
