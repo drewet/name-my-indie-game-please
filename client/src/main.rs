@@ -16,10 +16,19 @@ use cgmath::Rotation3;
 use cgmath::Vector3;
 use cgmath::Vector;
 use cgmath::ToRad;
+use cgmath::rad;
 use glfw::Context;
 use renderer::RenderComponent;
 use shared::EntityComponent;
 use serialize::json;
+
+use shared::component::ComponentStore;
+use shared::network::channel::NetChannel;
+
+use std::io::net::ip::{Ipv4Addr, SocketAddr};
+use std::io::net::udp::{UdpSocket, UdpStream};
+
+use shared::network::{ServerToClient, Signon, Update, SignonPacket};
 
 mod input;
 mod renderer;
@@ -40,25 +49,51 @@ fn start(argc: int, argv: *const *const u8) -> int {
 }
 
 fn main() {
-    gameloop()
+    connect(SocketAddr {
+        ip: Ipv4Addr(162,243,139,73),
+        port: 18295
+    }, 10)
 }
 
-fn gameloop() {
-    use shared::component::ComponentStore;
-    use shared::network::channel::NetChannel;
-
-    use std::io::net::ip::{Ipv4Addr, SocketAddr};
-    use std::io::net::udp::UdpSocket;
-
-    let serveraddr = SocketAddr { ip: Ipv4Addr(162, 243, 139, 73), port: 18295 };
-
+fn connect(serveraddr: SocketAddr, mut retries: u32) {
     let mut stream = UdpSocket::bind(SocketAddr { ip: Ipv4Addr(0,0,0,0), port: 0}).unwrap().connect(serveraddr);
-    stream.as_socket(|sock| sock.set_read_timeout(Some(0)));
     let mut netchan = NetChannel::new();
 
-    let mut entities = ComponentStore::new();
-    let mut renderables = ComponentStore::new();
-    let mut cam = None;
+    while retries > 0 {
+        let encoded_packet = json::encode(&shared::network::Connect).into_bytes();
+        let compressed_packet = flate::deflate_bytes_zlib(encoded_packet.as_slice()).unwrap();
+        let packet = netchan.send_unreliable(compressed_packet.as_slice()).unwrap();
+        stream.write(packet.as_slice()).unwrap();
+
+        let mut recvbuf = [0u8, ..16384];
+        // 100ms timeout
+        stream.as_socket(|sock| sock.set_read_timeout(Some(100)));
+        match stream.read(recvbuf) {
+            Ok(0) => continue,
+            Ok(len) => {
+                let datagram = recvbuf.as_slice().slice_to(len);
+                let compressed_packet = netchan.recv_unreliable(datagram).unwrap();
+                let packet = flate::inflate_bytes_zlib(compressed_packet.as_slice()).unwrap();
+                let msg: ServerToClient = json::decode(std::str::from_utf8(packet.as_slice()).unwrap()).unwrap();
+
+                match msg {
+                    Signon(signon) => {
+                        gameloop(stream, netchan, signon);
+                        return;
+                    },
+                    _ => ()
+                }
+            },
+            Err(std::io::IoError { kind: std::io::TimedOut, ..}) => (),
+            Err(e) => fail!("Network error connecting to server: {}", e)
+        }
+        retries -= 1;
+    }
+}
+
+fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket) {
+    stream.as_socket(|sock| sock.set_read_timeout(Some(0)));
+
 
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
@@ -76,16 +111,23 @@ fn gameloop() {
     window.set_cursor_pos_polling(true);
     window.set_cursor_mode(glfw::CursorDisabled);
 
+    let mut entities = ComponentStore::new();
+    let mut renderables = ComponentStore::new();
+
     let mut renderer = renderer::Renderer::new(&mut window);
     let mut input_integrator = input::MouseInputIntegrator::new();
 
     let mut motion = None;
     let mut hdict = std::collections::HashMap::new();
 
-    let mut last_command = 0.;
-    let mut localplayer = None;
+    let localplayer = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.),
+        Rotation3::from_euler(rad(0.), rad(0.), rad(0.)));
 
-    let mut signedon = false;
+    hdict.insert(signon.handle, localplayer);
+
+    let cam = renderer::CameraComponent::new(localplayer);
+
+    let mut last_command = 0.;
     let mut servertick = 0;
 
     while !window.should_close() {
@@ -128,7 +170,6 @@ fn gameloop() {
         loop { match stream.read(buf) {
             Ok(0) => (),
             Ok(len) => {
-                use shared::network::{ServerToClient, Signon, Update};
 
                 let packet = netchan.recv_unreliable((buf.slice_to(len))).unwrap();
                 let packet = flate::inflate_bytes_zlib(packet.as_slice()).expect("Decompression!");
@@ -144,14 +185,6 @@ fn gameloop() {
                             handle
                         });
                     },
-                    Signon(signon) if localplayer.is_none() => {
-                        println!("Got signon packet.");
-                        signedon = true;
-                        let playerent = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.,), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
-                        hdict.insert(signon.handle, playerent);
-                        cam = Some(renderer::CameraComponent::new(playerent));
-                        localplayer = Some(playerent);
-                    }
                     Signon(_) => ()
                 }
             },
@@ -168,23 +201,17 @@ fn gameloop() {
                 movement: motion
             };
 
-            let pkt = netchan.send_unreliable(flate::deflate_bytes_zlib(if signedon {
-                json::encode(&shared::network::Playercmd(cmd)).into_bytes()
-            } else {
-                json::encode(&shared::network::Connect).into_bytes()
-            }.as_slice()).unwrap().as_slice()).unwrap();
-            stream.write(pkt.as_slice()).unwrap();
+            let encoded_packet = json::encode(&shared::network::Playercmd(cmd)).into_bytes();
+            let compressed_packet = flate::deflate_bytes_zlib(encoded_packet.as_slice()).unwrap();
+            let packet = netchan.send_unreliable(compressed_packet.as_slice()).unwrap();
+            stream.write(packet.as_slice()).unwrap();
 
         }
 
-        //let predicted_entities = prediction.as_mut().and_then(|pred| pred.get_predicted_state());
-
-        match cam {
-            Some(ref cam) => renderer.render(cam, &mut renderables, &entities),
-            None => ()
-        };
+        renderer.render(&cam, &mut renderables, &entities);
 
         println!("{}", netchan.get_latency());
+
         window.swap_buffers();
 
         let frameend_ns = time::precise_time_ns();
