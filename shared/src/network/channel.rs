@@ -39,6 +39,7 @@ impl NetChannel {
     }
 
     pub fn get_outgoing_sequencenr(&self) -> SequenceNr { self.last_outgoing }
+    pub fn get_incoming_sequencenr(&self) -> SequenceNr { self.last_incoming }
     pub fn get_acked_outgoing_sequencenr(&self) -> SequenceNr { self.last_acked_outgoing }
 
     pub fn send_unreliable(&mut self, data: &[u8]) -> IoResult<Vec<u8>> {

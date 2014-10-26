@@ -50,7 +50,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
 
 fn main() {
     connect(SocketAddr {
-        ip: Ipv4Addr(127,0,0,1),
+        ip: Ipv4Addr(162,243,139,73),
         port: 18295
     }, 10)
 }

@@ -90,7 +90,11 @@ fn gameloop() {
                 let is_new = match clients.find_mut(&addr) {
                     Some(client) => {
 
+                        let prevseq = client.channel.get_incoming_sequencenr();
+
                         let data = client.channel.recv_unreliable(data).unwrap();
+                        let dropped_packets = client.channel.get_incoming_sequencenr() - prevseq;
+
                         let data = flate::inflate_bytes_zlib(data.as_slice()).unwrap();
                         let cmdstr = std::str::from_utf8(data.as_slice()).unwrap();
                         let cmd: shared::network::ClientToServer = json::decode(cmdstr).unwrap();
@@ -99,7 +103,9 @@ fn gameloop() {
 
                             Playercmd(cmd) => {
                                 client.last_acked_tick = cmd.tick;
-                                shared::playercmd::run_command(cmd,controllables.find_mut(client.controllable).unwrap(), &mut entities);
+                                for _ in range(0, dropped_packets + 1) {
+                                    shared::playercmd::run_command(cmd,controllables.find_mut(client.controllable).unwrap(), &mut entities);
+                                }
                                 client.connstate = Playing;
                                 false
                             }
