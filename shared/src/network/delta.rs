@@ -32,7 +32,6 @@ impl<Component, MarshalledComponent: PartialEq + Clone> DeltaEncoder<Component, 
     }
 
     fn create_full_update(&self) -> Vec<ComponentUpdate<MarshalledComponent>> {
-        println!("Creating full update...");
         let mut updates = Vec::new();
         for (handle, comp) in self.states[0].iter() {
             updates.push(ComponentUpdate {

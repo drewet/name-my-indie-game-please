@@ -2,7 +2,7 @@ use component::{ComponentStore, EntityComponent, EntityHandle};
 use cgmath::{Point, Vector, Vector3, Quaternion};
 
 pub struct ControllableComponent {
-    entity: EntityHandle
+    pub entity: EntityHandle
     
     //pub topspeed: f32,
 

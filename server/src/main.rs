@@ -79,7 +79,6 @@ fn gameloop() {
 
         current_tick = current_tick + 1;
         
-        ent_deltas.add_state(&entities, |ent| ent.to_nohandle());
 
         // incoming packets
         let mut recvbuf = [0u8, ..8192]; 
@@ -133,6 +132,8 @@ fn gameloop() {
             Err(_) => break,
         }}
 
+        ent_deltas.add_state(&entities, |ent| ent.to_nohandle());
+
         // outgoing
         for (_, client) in clients.iter_mut() {
             if client.last_acked_tick != 0 && client.last_acked_tick + 512 < current_tick {
@@ -142,7 +143,7 @@ fn gameloop() {
                 Playing => {
                     let update = shared::network::Update(shared::network::UpdatePacket {
                         tick: current_tick,
-                        entity_updates: ent_deltas.create_delta(current_tick - client.last_acked_tick)
+                        entity_updates: ent_deltas.create_delta(9999)
                     });
                     let update = json::encode(&update);
                     let update = update.into_bytes();

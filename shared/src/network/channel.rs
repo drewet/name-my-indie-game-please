@@ -2,9 +2,9 @@ use std;
 use std::collections::{Deque, RingBuf};
 use std::io::IoResult;
 
-type SequenceNr = u32;
+pub type SequenceNr = u32;
 
-/*fn overflow_aware_compare(a: SequenceNr, b: SequenceNr) -> std::cmp::Ordering {
+pub fn overflow_aware_compare(a: SequenceNr, b: SequenceNr) -> std::cmp::Ordering {
     use std::cmp::{max, min};
     
     let abs_difference = max(a, b) - min(a, b);
@@ -14,7 +14,7 @@ type SequenceNr = u32;
     } else {
         b.cmp(&a)
     }
-}*/
+}
 
 pub struct NetChannel {
     last_outgoing: SequenceNr,
@@ -37,6 +37,9 @@ impl NetChannel {
             latency: 0.,
         }
     }
+
+    pub fn get_outgoing_sequencenr(&self) -> SequenceNr { self.last_outgoing }
+    pub fn get_acked_outgoing_sequencenr(&self) -> SequenceNr { self.last_acked_outgoing }
 
     pub fn send_unreliable(&mut self, data: &[u8]) -> IoResult<Vec<u8>> {
         let mut buf = std::io::MemWriter::with_capacity(data.len() + 16);

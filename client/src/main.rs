@@ -32,7 +32,7 @@ use shared::network::{ServerToClient, Signon, Update, SignonPacket};
 
 mod input;
 mod renderer;
-//mod prediction;
+mod prediction;
 
 // A weird hack to get arguments to the linker.
 /*#[cfg(target_family="windows")]
@@ -50,7 +50,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
 
 fn main() {
     connect(SocketAddr {
-        ip: Ipv4Addr(162,243,139,73),
+        ip: Ipv4Addr(127,0,0,1),
         port: 18295
     }, 10)
 }
@@ -89,6 +89,8 @@ fn connect(serveraddr: SocketAddr, mut retries: u32) {
         }
         retries -= 1;
     }
+
+    fail!("Out of retries while connecting to server!")
 }
 
 fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket) {
@@ -129,6 +131,8 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
 
     let mut last_command = 0.;
     let mut servertick = 0;
+
+    let mut prediction = prediction::Prediction::new(shared::playercmd::ControllableComponent::new(localplayer));
 
     while !window.should_close() {
         use shared::network::protocol::apply_update;
@@ -184,6 +188,7 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
                             renderables.add(RenderComponent{entity: handle});
                             handle
                         });
+                        prediction.update(netchan.get_acked_outgoing_sequencenr(), &entities);
                     },
                     Signon(_) => ()
                 }
@@ -192,7 +197,7 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
             Err(e) => fail!("Network error: {}", e)
         } };
 
-        if last_command + (shared::TICK_LENGTH as f64) < (framestart_ns as f64 / 1000. / 1000. / 1000.) {
+        if last_command + (shared::TICK_LENGTH as f64) < (framestart_ns as f64 / 1000. / 1000. / 1000.) { 
             last_command = framestart_ns as f64 / 1000. / 1000. / 1000.;
 
             let cmd = shared::playercmd::PlayerCommand {
@@ -201,16 +206,18 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
                 movement: motion
             };
 
+
             let encoded_packet = json::encode(&shared::network::Playercmd(cmd)).into_bytes();
             let compressed_packet = flate::deflate_bytes_zlib(encoded_packet.as_slice()).unwrap();
             let packet = netchan.send_unreliable(compressed_packet.as_slice()).unwrap();
             stream.write(packet.as_slice()).unwrap();
 
+            prediction.predict(cmd, netchan.get_outgoing_sequencenr());
         }
 
-        renderer.render(&cam, &mut renderables, &entities);
+        renderer.render(&cam, &mut renderables, prediction.get_entities().unwrap_or(&entities));
 
-        println!("{}", netchan.get_latency());
+        //println!("{}", netchan.get_latency());
 
         window.swap_buffers();
 
