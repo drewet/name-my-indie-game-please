@@ -93,7 +93,7 @@ fn gameloop() {
                         let prevseq = client.channel.get_incoming_sequencenr();
 
                         let data = client.channel.recv_unreliable(data).unwrap();
-                        let dropped_packets = client.channel.get_incoming_sequencenr() - prevseq;
+                        let dropped_packets = client.channel.get_incoming_sequencenr() - (prevseq + 1);
                         if dropped_packets > 0 {
                             println!("Lost {} client packets...", dropped_packets)
                         }
