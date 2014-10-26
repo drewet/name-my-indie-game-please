@@ -72,7 +72,6 @@ impl<'a, Component> Iterator<(ComponentHandle<Component>, &'a mut Component)> fo
 }
 
 /// Stores components.
-#[deriving(Clone)]
 pub struct ComponentStore<Component> {
     // TODO: replace Vecs and stuff w/ fixed-size arrays
     components: Vec<ComponentBookkeeper<Component>>
@@ -80,7 +79,7 @@ pub struct ComponentStore<Component> {
 
 impl<Component> ComponentStore<Component> {
     pub fn new() -> ComponentStore<Component> {
-        ComponentStore { components: Vec::from_fn(64, |_| ComponentBookkeeper {
+        ComponentStore { components: Vec::from_fn(2048, |_| ComponentBookkeeper {
             serial: 0,
             component: None
         })} 
@@ -181,6 +180,18 @@ impl<Component> ComponentStore<Component> {
     }
     fn find_free_bookkeeper(&self) -> uint {
         self.components.iter().position(|bookkeeper| bookkeeper.component.is_none()).expect("Out of room in ComponentStore!")
+    }
+}
+
+impl<Component: Clone> Clone for ComponentStore<Component> {
+    fn clone(&self) -> ComponentStore<Component> {
+        ComponentStore {
+            components: self.components.clone()
+        }
+    }
+
+    fn clone_from(&mut self, source: &ComponentStore<Component>) {
+        self.components.clone_from(&source.components)
     }
 }
 #[cfg(test)]
