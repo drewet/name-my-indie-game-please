@@ -1,8 +1,11 @@
 notifications:
   irc: "irc.quakenet.org#nmigp"
 language: rust
+before_install:
+        - sudo apt-get update -qq
+        - sudo apt-get install -qq xorg-dev libglu1-mesa-dev 
 script:
         - cd engine
-        - cargo test --features build_glfw
+        - cargo test --verbose --features build_glfw
         - cd ../game
-        - cargo test --features build_glfw
+        - cargo test --verbose --features build_glfw
