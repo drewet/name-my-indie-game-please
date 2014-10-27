@@ -1,0 +1,20 @@
+[package]
+
+name = "game"
+version = "0.0.1"
+authors = ["Nathaniel Theis <nttheis@gmail.com>"]
+
+[features]
+build_glfw = ["glfw-sys"]
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs"
+
+[dependencies.engine]
+path = "../engine"
+
+# for glfw-rs
+[dependencies.glfw-sys]
+git = "https://github.com/servo/glfw"
+branch = "cargo-3.0.4"
+optional = true

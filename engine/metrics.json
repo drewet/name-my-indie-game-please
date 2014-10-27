@@ -1,0 +1,22 @@
+{
+  "entity::test::bench_component_iteration_1024_fragmented": {
+    "noise": 393.65,
+    "value": 2726
+  },
+  "entity::test::bench_component_iteration_2048": {
+    "noise": 507.95,
+    "value": 2659
+  },
+  "entity::test::bench_componentcreation_32": {
+    "noise": 756.15,
+    "value": 3808.5
+  },
+  "entity::test::bench_componentcreationandremoval": {
+    "noise": 2.55,
+    "value": 8
+  },
+  "entity::test::bench_componentid_lookup": {
+    "noise": 1,
+    "value": 4
+  }
+}

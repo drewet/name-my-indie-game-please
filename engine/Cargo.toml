@@ -1,0 +1,27 @@
+[package]
+
+name = "engine"
+version = "0.0.1"
+authors = ["Nathaniel Theis <nttheis@gmail.com>"]
+
+[features]
+build_glfw = ["glfw-sys"]
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs"
+
+[dependencies.anymap]
+git = "https://github.com/chris-morgan/anymap"
+
+[dependencies.gfx]
+git = "https://github.com/gfx-rs/gfx-rs"
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs"
+default-features = false
+
+# for glfw-rs
+[dependencies.glfw-sys]
+git = "https://github.com/servo/glfw"
+branch = "cargo-3.0.4"
+optional = true
