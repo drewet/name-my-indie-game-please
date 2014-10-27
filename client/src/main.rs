@@ -1,7 +1,6 @@
 #![feature(phase, link_args)]
 
 extern crate cgmath;
-extern crate game;
 extern crate gfx;
 #[phase(plugin)]
 extern crate gfx_macros;
@@ -19,7 +18,7 @@ use cgmath::Vector;
 use cgmath::ToRad;
 use cgmath::rad;
 use glfw::Context;
-use renderer_3d::RenderComponent;
+use renderer::RenderComponent;
 use shared::EntityComponent;
 use serialize::json;
 
@@ -32,7 +31,7 @@ use std::io::net::udp::{UdpSocket, UdpStream};
 use shared::network::{ServerToClient, Signon, Update, SignonPacket};
 
 mod input;
-pub mod renderer_3d;
+mod renderer;
 mod prediction;
 
 // A weird hack to get arguments to the linker.
@@ -117,7 +116,7 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
     let mut entities = ComponentStore::new();
     let mut renderables = ComponentStore::new();
 
-    let mut renderer = renderer_3d::Renderer::new(&mut window);
+    let mut renderer = renderer::Renderer::new(&mut window);
     let mut input_integrator = input::MouseInputIntegrator::new();
 
     let mut motion = None;
@@ -128,7 +127,7 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
 
     hdict.insert(signon.handle, localplayer);
 
-    let cam = renderer_3d::CameraComponent::new(localplayer);
+    let cam = renderer::CameraComponent::new(localplayer);
 
     let mut last_command = 0.;
     let mut servertick = 0;
