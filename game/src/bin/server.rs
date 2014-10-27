@@ -169,3 +169,6 @@ fn gameloop() {
         }
     }
 }
+
+#[test]
+fn test() {}

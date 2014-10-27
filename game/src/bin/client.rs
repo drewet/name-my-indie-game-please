@@ -42,6 +42,7 @@ use engine::network::{ServerToClient, Signon, Update, SignonPacket};
 
 // We need to run on the main thread for GLFW, so ensure we are using the `native` runtime. This is
 // technically not needed, since this is the default, but it's not guaranteed.
+#[cfg(not(test))]
 #[start]
 fn start(argc: int, argv: *const *const u8) -> int {
     native::start(argc, argv, main)
@@ -225,3 +226,6 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
         window.set_title(format!("{}FPS, frametime: {}ns", fps, frametime_ns).as_slice());
     }
 }
+
+#[test]
+fn test() {}
