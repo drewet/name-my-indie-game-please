@@ -2,7 +2,7 @@ notifications:
   irc: "irc.quakenet.org#nmigp"
 language: rust
 script:
-        - cd shared
-        - cargo test
-        - cd ../server
-        - cargo test
+        - cd engine
+        - cargo test --features build_glfw
+        - cd ../game
+        - cargo test --features build_glfw
