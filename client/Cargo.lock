@@ -3,6 +3,7 @@ name = "client"
 version = "0.0.1"
 dependencies = [
  "cgmath 0.0.1 (git+https://github.com/bjz/cgmath-rs#f514fb28830ef55da8f4eccda8a1cfaf170b63f5)",
+ "game 0.0.1",
  "gfx 0.1.0 (git+https://github.com/gfx-rs/gfx-rs#f8ec387c26f85484266eb571d636bf9854e6ce7e)",
  "glfw 0.0.1 (git+https://github.com/bjz/glfw-rs#d394c244575ed879e933dffcdab06d4276a5cdae)",
  "shared 0.0.1",
@@ -24,6 +25,14 @@ version = "0.1.0"
 source = "git+https://github.com/gfx-rs/gfx-rs#f8ec387c26f85484266eb571d636bf9854e6ce7e"
 dependencies = [
  "gfx_gl 0.1.0 (git+https://github.com/gfx-rs/gfx_gl.git#ed681503da2e7ed9343003e78af4767e8e4e33a8)",
+]
+
+[[package]]
+name = "game"
+version = "0.0.1"
+dependencies = [
+ "cgmath 0.0.1 (git+https://github.com/bjz/cgmath-rs#f514fb28830ef55da8f4eccda8a1cfaf170b63f5)",
+ "shared 0.0.1",
 ]
 
 [[package]]

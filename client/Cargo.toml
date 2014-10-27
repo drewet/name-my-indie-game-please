@@ -4,6 +4,7 @@ name = "client"
 version = "0.0.1"
 authors = ["Nathaniel Theis <nttheis@gmail.com>"]
 
+
 [dependencies.gfx]
 git = "https://github.com/gfx-rs/gfx-rs"
 
@@ -13,6 +14,9 @@ default-features = false
 
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs"
+
+[dependencies.game]
+path = "../game"
 
 [dependencies.shared]
 path = "../shared"
