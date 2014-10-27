@@ -3,9 +3,11 @@ use std::collections::Deque;
 use shared::{
     ComponentStore,
     EntityComponent,
+    EntityHandle,
 
     playercmd
 };
+use shared::network::UpdatePacket;
 use shared::network::channel::{overflow_aware_compare, SequenceNr};
 use shared::playercmd::{ControllableComponent, PlayerCommand};
 use cgmath::ApproxEq;
