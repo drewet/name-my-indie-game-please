@@ -39,6 +39,7 @@ pub mod physics;
 pub mod playercmd;
 pub mod prediction;
 pub mod renderer;
+pub mod renderer_2d;
 
 /// Length of one simulation tick, in seconds.
 pub static TICK_LENGTH: f32 = 1.0 / 128.0;

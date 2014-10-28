@@ -18,11 +18,11 @@ use cgmath::Vector;
 use cgmath::ToRad;
 use cgmath::rad;
 use glfw::Context;
-use engine::renderer::RenderComponent;
+use engine::renderer_2d::RenderComponent;
 use engine::EntityComponent;
 use serialize::json;
 
-use engine::renderer;
+use engine::renderer_2d;
 use engine::prediction;
 use engine::input;
 use engine::component::ComponentStore;
@@ -50,7 +50,8 @@ fn start(argc: int, argv: *const *const u8) -> int {
 
 fn main() {
     connect(SocketAddr {
-        ip: Ipv4Addr(162,243,139,73),
+        //ip: Ipv4Addr(162,243,139,73),
+        ip: Ipv4Addr(127,0,0,1),
         port: 18295
     }, 10)
 }
@@ -96,7 +97,6 @@ fn connect(serveraddr: SocketAddr, mut retries: u32) {
 fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket) {
     stream.as_socket(|sock| sock.set_read_timeout(Some(0)));
 
-
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     glfw.window_hint(glfw::ContextVersion(3, 2));
@@ -116,18 +116,22 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
     let mut entities = ComponentStore::new();
     let mut renderables = ComponentStore::new();
 
-    let mut renderer = renderer::Renderer::new(&mut window);
-    let mut input_integrator = input::MouseInputIntegrator::new();
+    let mut renderer = renderer_2d::Renderer::new(&mut window);
 
     let mut motion = None;
+
     let mut hdict = std::collections::HashMap::new();
+    let mut render_hdict = std::collections::HashMap::new();
+
+    let camera = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.),
+        Rotation3::from_euler(rad(0.), rad(0.), rad(0.)));
 
     let localplayer = EntityComponent::new(&mut entities, Point3::new(0., 0., 0.),
         Rotation3::from_euler(rad(0.), rad(0.), rad(0.)));
 
     hdict.insert(signon.handle, localplayer);
 
-    let cam = renderer::CameraComponent::new(localplayer);
+    let cam = renderer_2d::CameraComponent::new(camera);
 
     let mut last_command = 0.;
     let mut servertick = 0;
@@ -144,28 +148,18 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
         for (_, event) in glfw::flush_messages(&events) {
             match event {
                 glfw::KeyEvent(glfw::KeyEscape, _, glfw::Press, _) => { window.set_should_close(true) }
-                glfw::KeyEvent(glfw::KeyUp, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.5, 0.0))}
-                glfw::KeyEvent(glfw::KeyDown, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, -0.5, 0.0))}
-                glfw::KeyEvent(glfw::KeyLeft, _, glfw::Press, _) => {motion = Some(Vector3::new(-0.5, 0.0, 0.0))}
-                glfw::KeyEvent(glfw::KeyRight, _, glfw::Press, _) => {motion = Some(Vector3::new(0.5, 0.0, 0.0))},
-                glfw::KeyEvent(glfw::KeyPageUp, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.0, 0.5))}
-                glfw::KeyEvent(glfw::KeyPageDown, _, glfw::Press, _) => {motion = Some(Vector3::new(0.0, 0.0, -0.5))}
+                glfw::KeyEvent(glfw::KeyLeft, _, glfw::Press, _) => {motion = Some(Vector3::new(-0.01, 0.0, 0.0))}
+                glfw::KeyEvent(glfw::KeyRight, _, glfw::Press, _) => {motion = Some(Vector3::new(0.01, 0.0, 0.0))},
                 glfw::KeyEvent(_, _, glfw::Release, _) => {motion = None}
-                glfw::CursorPosEvent(xpos, ypos) => {
+                /*glfw::CursorPosEvent(xpos, ypos) => {
                     window.set_cursor_pos(0., 0.);
                     input_integrator.input(xpos as f32, ypos as f32);
-                }
+                }*/
                 _ => {},
             }
         }
 
-        // networking
-        //     get updates from server, update gamestate
-        //     part of that is GC for component stores
-        //     send input to server (no prediction yet, singleplayer)
-        // sound, etc.
-        //
-        let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,)).mul_s(0.1);
+        let motion = motion.unwrap_or(Vector3::new(0., 0., 0.,));
 
 
         let mut buf = [0u8, ..8192];
@@ -182,11 +176,10 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
                     Update(update) => {
                         servertick = update.tick;
                         apply_update(update.entity_updates.into_iter(), &mut hdict, &mut entities, |e, h| EntityComponent::from_nohandle(&e, h), |e, store| {
-                            println!("Adding new entity.");
                             let handle = store.add_with_handle(|handle| EntityComponent::from_nohandle(&e, handle));
-                            renderables.add(RenderComponent{entity: handle});
                             handle
                         });
+                        apply_update(update.render_updates.into_iter(), &mut render_hdict, &mut renderables, |raw, _| RenderComponent::from_raw(raw, |e| *hdict.find(&e).unwrap()), |raw, store| store.add(RenderComponent::from_raw(raw, |e| *hdict.find(&e).unwrap())));
                         prediction.update(netchan.get_acked_outgoing_sequencenr(), &entities);
                     },
                     Signon(_) => ()
@@ -201,7 +194,7 @@ fn gameloop(mut stream: UdpStream, mut netchan: NetChannel, signon: SignonPacket
 
             let cmd = engine::playercmd::PlayerCommand {
                 tick: servertick,
-                angles: cgmath::Rotation3::from_euler(cgmath::rad(0.), input_integrator.yaw.to_rad(), input_integrator.pitch.to_rad()),
+                angles: cgmath::Rotation3::from_euler(rad(0.), rad(0.), rad(0.)),
                 movement: motion
             };
 

@@ -65,8 +65,10 @@ impl NetChannel {
         let payload_len = try!(buf.read_le_u64());
         let payload = try!(buf.read_exact(payload_len as uint));
 
-        self.last_incoming = sequence_number;
-        self.ack(acked_sequence_number);
+        if overflow_aware_compare(sequence_number, self.last_incoming) == std::cmp::Greater {
+            self.last_incoming = sequence_number;
+            self.ack(acked_sequence_number);
+        }
 
         Ok(payload)
     }

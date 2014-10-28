@@ -1,6 +1,7 @@
 pub use playercmd::PlayerCommand;
 use component::{RawComponentHandle};
 use component::components::NoHandleEntityComponent;
+use renderer_2d::RawRenderComponent;
 
 pub mod channel;
 pub mod protocol;
@@ -22,7 +23,8 @@ pub enum ServerToClient {
 #[deriving(Encodable, Decodable)]
 pub struct UpdatePacket {
     pub tick: u64,
-    pub entity_updates: Vec<ComponentUpdate<NoHandleEntityComponent>>
+    pub entity_updates: Vec<ComponentUpdate<NoHandleEntityComponent>>,
+    pub render_updates: Vec<ComponentUpdate<RawRenderComponent>>
 }
 
 #[deriving(Encodable, Decodable)]

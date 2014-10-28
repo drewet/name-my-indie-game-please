@@ -9,6 +9,7 @@ use engine::{ComponentHandle, EntityComponent, EntityHandle};
 use engine::component::components::NoHandleEntityComponent;
 use engine::network::{ClientToServer, Connect, Disconnect, Playercmd};
 use engine::network::channel::NetChannel;
+use engine::renderer_2d::{RenderComponent, RawRenderComponent};
 use std::collections::HashMap;
 
 fn main() {
@@ -22,13 +23,14 @@ struct Client {
     entity: EntityHandle,
     controllable: ComponentHandle<engine::playercmd::ControllableComponent>,
     connstate: ConnectionState,
+
+    force_full_update: bool
 }
 
 #[deriving(PartialEq, Eq)]
 enum ConnectionState {
     SigningOn,
     Playing,
-    TimingOut
 }
 
 fn gameloop() {
@@ -46,15 +48,24 @@ fn gameloop() {
 
     let mut entities = ComponentStore::new();
     let mut controllables = ComponentStore::new();
-    //let mut physicals = ComponentStore::new();
+    let mut renderables = ComponentStore::new();
 
-    //let debugbox = EntityComponent::new(&mut entities, Point3::new(0.0, 0.01, 0.0), Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.)));
-    
     let mut clients: HashMap<SocketAddr, Client> = HashMap::new();
     
     let mut current_tick = 0u64;
 
     let mut ent_deltas: engine::network::delta::DeltaEncoder<EntityComponent, NoHandleEntityComponent> = engine::network::delta::DeltaEncoder::new(64);
+    let mut render_deltas: engine::network::delta::DeltaEncoder<RenderComponent, RawRenderComponent> = engine::network::delta::DeltaEncoder::new(64);
+
+    let playerent = EntityComponent::new(&mut entities,
+                                         Point3::new(0.0, 0.0, 0.0),
+                                         Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.))
+                                        );
+    renderables.add(RenderComponent {
+        entity: playerent,
+        color: cgmath::Vector3::new(0.9 ,0.4, 0.9),
+        size: cgmath::Vector2::new(0.02, 0.02)
+    });
 
     let mut next_tick_time = time::precise_time_s();
     loop {
@@ -108,6 +119,7 @@ fn gameloop() {
                                     engine::playercmd::run_command(cmd,controllables.find_mut(client.controllable).unwrap(), &mut entities);
                                 }
                                 client.connstate = Playing;
+                                //client.force_full_update = false;
                                 false
                             }
                             Connect => false,
@@ -120,11 +132,15 @@ fn gameloop() {
                 if is_new {
                     println!("Got connect from {}!", addr);
                     let playerent = EntityComponent::new(&mut entities,
-                                                         Point3::new(0.0, 5., 0.0),
+                                                         Point3::new(0.0, 0., -0.95),
                                                          Rotation3::from_euler(cgmath::rad(0.), cgmath::rad(0.), cgmath::rad(0.))
                                                         );
                     let controllable = controllables.add(engine::playercmd::ControllableComponent::new(playerent));
-
+                    renderables.add(RenderComponent {
+                        entity: playerent,
+                        color: cgmath::Vector3::new(0. ,0.9, 0.2),
+                        size: cgmath::Vector2::new(0.1, 0.03)
+                    });
                     clients.remove(&addr);
                     clients.insert(addr, Client {
                         addr: addr,
@@ -132,6 +148,7 @@ fn gameloop() {
                         entity: playerent,
                         controllable: controllable,
                         connstate: SigningOn,
+                        force_full_update: true,
                     });
                 }
             },
@@ -139,14 +156,26 @@ fn gameloop() {
         }}
 
         ent_deltas.add_state(&entities, |ent| ent.to_nohandle());
+        render_deltas.add_state(&renderables, |renderable| RawRenderComponent {
+            entity: renderable.entity.to_raw(),
+            color: renderable.color,
+            size: renderable.size
+        });
 
         // outgoing
         for (_, client) in clients.iter_mut() {
             match client.connstate {
                 Playing => {
+                    let delta_size = if client.force_full_update {
+                        9999
+                    } else {
+                        (client.channel.get_outgoing_sequencenr() + 1 - client.channel.get_acked_outgoing_sequencenr()) as u64
+                    };
+
                     let update = engine::network::Update(engine::network::UpdatePacket {
                         tick: current_tick,
-                        entity_updates: ent_deltas.create_delta((client.channel.get_outgoing_sequencenr() + 1 - client.channel.get_acked_outgoing_sequencenr()) as u64)
+                        entity_updates: ent_deltas.create_delta(delta_size),
+                        render_updates: render_deltas.create_delta(delta_size)
                     });
                     let update = json::encode(&update);
                     let update = update.into_bytes();
@@ -164,7 +193,6 @@ fn gameloop() {
                     let datagram = client.channel.send_unreliable(signon.as_slice());
                     socket.send_to(datagram.unwrap().as_slice(), client.addr).unwrap();
                 },
-                TimingOut => ()
             }
         }
     }

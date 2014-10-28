@@ -10,7 +10,7 @@ pub struct ComponentHandle<Component> {
     id: u16,
     serial: u32
 }
-#[deriving(Encodable, Decodable, Hash, PartialEq, Eq)]
+#[deriving(Encodable, Decodable, Hash, PartialEq, Eq, Clone)]
 pub struct RawComponentHandle {
     id: u16,
     serial: u32
